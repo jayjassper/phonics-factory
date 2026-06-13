@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phonics Factory - Decoding Skills</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pixar: {
+                            cyan: '#B5EAD7',   // Pastel Green
+                            orange: '#FFB7B2', // Pastel Pink
+                            indigo: '#6B5B95', // Soft Purple
+                            amber: '#FDFD96',  // Pastel Yellow
+                            white: '#FFFFFF',
+                            dark: '#4A4E69',   // Soft Dark
+                            green: '#A2E1DB',  // Sky Blue
+                            pink: '#FFD1DC'    // Soft Pink
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        'glow': '0 0 20px rgba(6, 182, 212, 0.5)',
+                        'btn': '0 4px 0 rgba(0,0,0,0.2)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            touch-action: none;
+            /* Pixar pastel gradient — แสดงทันทีถ้าภาพโหลดไม่ได้ */
+            background-color: #F9D5E5;
+            background-image:
+                radial-gradient(ellipse at 20% 30%, rgba(255,209,220,0.85) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 20%, rgba(181,234,215,0.75) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 80%, rgba(162,225,219,0.70) 0%, transparent 55%),
+                radial-gradient(ellipse at 10% 80%, rgba(253,253,150,0.45) 0%, transparent 45%),
+                radial-gradient(ellipse at 90% 70%, rgba(255,183,178,0.50) 0%, transparent 45%),
+                linear-gradient(160deg, #FFD1DC 0%, #E8D5F5 30%, #B5EAD7 60%, #A2E1DB 100%);
+            background-attachment: fixed;
+            background-size: cover;
+        }
+
+        /* โหลดภาพต้นฉบับทับ gradient — ถ้า 403 gradient จะโชว์แทนได้เลย */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: url('https://img2.pic.in.th/Gemini_Generated_Image_9zopak9zopak9zop.png') center center / cover no-repeat;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* เพิ่ม Overlay สีขาวบางๆ ทับรูปภาพเพื่อให้ UI และตัวอักษรอ่านง่ายขึ้น */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.18);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .bouncy-btn {
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.1s;
+        }
+        .bouncy-btn:active:not(:disabled) {
+            transform: translateY(4px) scale(0.95);
+            box-shadow: 0 0 0 rgba(0,0,0,0);
+        }
+        
+        button:disabled {
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .letter-slot {
+            transition: all 0.2s ease;
+        }
+        .letter-slot.active {
+            border-color: #FFB7B2;
+            box-shadow: 0 0 15px rgba(255, 183, 178, 0.6);
+            transform: scale(1.05);
+        }
+        .karaoke-active {
+            color: #FFB7B2 !important;
+            transform: scale(1.2) translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background-color: #FFF7ED !important;
+            border-color: #FFB7B2 !important;
+            z-index: 10;
+        }
+
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        @keyframes pulse-mic {
+            0% { box-shadow: 0 0 0 0 rgba(255, 183, 178, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 183, 178, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 183, 178, 0); }
+        }
+        .mic-listening {
+            animation: pulse-mic 1.5s infinite;
+            background-color: #FFB7B2 !important;
+            color: white !important;
+        }
+
+        ::-webkit-scrollbar { display: none; }
+        
+        #matter-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; 
+            z-index: 50;
+        }
+        
+        /* Fix: button overlay inside matter-container must always be clickable */
+        #matter-container button {
+            pointer-events: auto !important;
+        }
+        
+        .physics-active #matter-container {
+            pointer-events: auto; 
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(3px);
+        }
+        
+        .outline-text {
+            text-shadow: -2px -2px 0 #1E293B, 2px -2px 0 #1E293B, -2px 2px 0 #1E293B, 2px 2px 0 #1E293B;
+        }
+
+        /* ===== AVATAR SYSTEM ===== */
+        .avatar-option {
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            border: 3px solid transparent;
+            border-radius: 50%;
+        }
+        .avatar-option:hover { transform: scale(1.12); }
+        .avatar-option.selected {
+            border-color: #6B5B95;
+            box-shadow: 0 0 0 3px #B5EAD7, 0 0 0 6px #6B5B95;
+            transform: scale(1.15);
+        }
+        .avatar-outfit {
+            position: absolute; bottom: -4px; right: -4px;
+            font-size: 0.9rem; background: white;
+            border-radius: 50%; width: 22px; height: 22px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        #hud-avatar {
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        #hud-avatar:hover { transform: scale(1.2); }
+
+        /* ===== DAILY STREAK ===== */
+        @keyframes streak-pop {
+            0%   { transform: scale(1); }
+            40%  { transform: scale(1.4) rotate(-10deg); }
+            70%  { transform: scale(0.9) rotate(5deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+        .streak-pop { animation: streak-pop 0.5s ease forwards; }
+
+        @keyframes streak-lose {
+            0%,100% { transform: translateX(0); opacity: 1; }
+            20%      { transform: translateX(-8px); }
+            40%      { transform: translateX(8px); }
+            60%      { transform: translateX(-5px); opacity: 0.5; }
+            80%      { transform: translateX(5px); }
+        }
+        .streak-lose { animation: streak-lose 0.5s ease forwards; }
+
+        /* ===== BATTLE MODE ===== */
+        /* Use :not(.hidden) so the ID selector does not override Tailwind's
+           .hidden { display: none } — ID specificity (100) beats class (10) */
+        #screen-battle:not(.hidden) {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr auto;
+            gap: 0;
+        }
+        /* Safety net: ensure hidden always wins */
+        #screen-battle.hidden {
+            display: none !important;
+        }
+        .battle-panel {
+            transition: background 0.3s;
+        }
+        .battle-panel.correct-flash {
+            animation: battle-flash-green 0.4s ease;
+        }
+        .battle-panel.wrong-flash {
+            animation: battle-flash-red 0.35s ease;
+        }
+        @keyframes battle-flash-green {
+            0%,100% { background: transparent; }
+            50%     { background: rgba(181,234,215,0.5); }
+        }
+        @keyframes battle-flash-red {
+            0%,100% { background: transparent; }
+            50%     { background: rgba(255,183,178,0.4); }
+        }
+        .battle-score-pop {
+            animation: battle-score-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes battle-score-pop {
+            from { transform: scale(0.5); opacity: 0.5; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+        .battle-divider {
+            position: absolute; left: 50%; top: 0; bottom: 0;
+            width: 4px; background: white;
+            transform: translateX(-50%);
+            z-index: 5; box-shadow: 0 0 12px rgba(0,0,0,0.1);
+        }
+        .battle-vs-badge {
+            position: absolute; left: 50%; top: 50%;
+            transform: translate(-50%,-50%);
+            z-index: 10;
+            width: 44px; height: 44px;
+            background: #6B5B95; color: white;
+            border-radius: 50%; display: flex;
+            align-items: center; justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem; font-weight: 900;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Admin Dashboard Styles */
+        .admin-table th, .admin-table td { border-bottom: 1px solid rgba(0,0,0,0.1); padding: 12px; text-align: left; }
+        .admin-table th { background: rgba(255,255,255,0.5); }
+        .admin-table tr:hover { background: rgba(255,255,255,0.3); }
+
+        /* Certificate Print Styles */
+        @media print {
+            body { background: white !important; overflow: auto !important; }
+            body > *:not(#print-area):not(#screen-admin) { display: none !important; }
+            
+            body.printing-admin #screen-admin {
+                display: block !important;
+                position: relative;
+                width: 100%; height: auto;
+                box-shadow: none; background: white;
+            }
+            body.printing-admin #print-area { display: none !important; }
+            body.printing-admin .no-print { display: none !important; }
+            
+            #print-area { 
+                display: block; 
+                position: absolute; 
+                top: 0; left: 0; 
+                width: 100%; height: 100%;
+            }
+            .print-bg { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+    </style>
+</head>
+<body class="text-pixar-dark font-sans antialiased h-screen w-screen flex items-center justify-center">
+
+    <!-- Background decorative elements -->
+    <div class="absolute top-10 left-10 w-32 h-32 bg-pixar-amber rounded-full mix-blend-multiply filter blur-2xl opacity-50 floating"></div>
+    <div class="absolute bottom-10 right-10 w-48 h-48 bg-pixar-orange rounded-full mix-blend-multiply filter blur-2xl opacity-50 floating" style="animation-delay: 1.5s;"></div>
+
+    <div id="app" class="relative w-full max-w-4xl h-full max-h-[900px] flex flex-col items-center justify-center p-4 z-10">
+        
+        <!-- UI Container: Top Bar -->
+        <header id="game-header" class="w-full flex justify-between items-center mb-2 sm:mb-4 hidden opacity-0 glass-panel rounded-full px-4 sm:px-6 py-2 sm:py-3 max-w-full">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Avatar in HUD -->
+                <div id="hud-avatar" class="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white flex items-center justify-center text-xl sm:text-2xl shadow-soft cursor-pointer select-none" title="Your avatar" onclick="openAvatarModal()">
+                    🐱
+                    <span id="hud-avatar-outfit" class="avatar-outfit" style="display:none"></span>
+                </div>
+                <div class="bg-white rounded-full p-1 sm:p-2 shadow-soft flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10">
+                    <span class="text-lg sm:text-xl">⚡</span>
+                </div>
+                <div>
+                    <div class="text-[10px] sm:text-xs text-white font-bold tracking-wider uppercase t-score">XP</div>
+                    <div id="score-display" class="text-xl sm:text-2xl font-display font-bold text-pixar-amber drop-shadow-md">0</div>
+                </div>
+                <!-- Streak pill -->
+                <div id="hud-streak" class="flex items-center gap-1 bg-white/20 rounded-full px-2 py-1" title="Daily streak">
+                    <span id="streak-fire">🔥</span>
+                    <span id="streak-display" class="text-white font-display font-black text-sm">0</span>
+                </div>
+            </div>
+            
+            <div class="flex gap-1 hidden sm:flex" id="badge-container"></div>
+
+            <div class="flex items-center gap-2 sm:gap-4 text-white font-bold">
+                <div class="text-right">
+                    <div id="level-name-display" class="text-[10px] sm:text-xs text-white/80 uppercase tracking-wider">Level 1</div>
+                    <div id="level-display" class="text-sm sm:text-lg">Short A Words</div>
+                </div>
+                <div class="flex gap-1 sm:gap-2">
+                    <button type="button" id="btn-sticker-nav" class="p-1 sm:p-2 rounded-full bg-pixar-pink text-white hover:bg-pink-600 transition shadow-soft flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10" title="Sticker Book">
+                        📚
+                    </button>
+                    <button type="button" id="btn-sound-toggle" class="p-1 sm:p-2 rounded-full bg-white/20 hover:bg-white/30 transition shadow-soft flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10">
+                        🔊
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="w-full flex-1 relative flex items-center justify-center">
+            
+            <!-- Screen: START -->
+            <section id="screen-start" class="absolute w-[90%] sm:w-full max-w-md flex flex-col items-center text-center glass-card rounded-3xl p-6 sm:p-8 z-20">
+                <div class="w-20 h-20 sm:w-24 sm:h-24 mb-3 sm:mb-4 bg-pixar-cyan rounded-full flex items-center justify-center shadow-glow floating" id="start-avatar-display">
+                    <span class="text-4xl sm:text-5xl" id="start-avatar-emoji">🏭</span>
+                </div>
+                <h1 class="font-display font-black text-3xl sm:text-4xl text-pixar-indigo mb-1 sm:mb-2 tracking-tight">Phonics Factory</h1>
+                <p class="text-xs sm:text-sm font-bold text-pixar-orange mb-1">Pastel Explorer Edition</p>
+
+                <!-- Streak display on home screen -->
+                <div id="home-streak-display" class="flex items-center justify-center gap-2 mb-4 hidden">
+                    <span class="text-2xl" id="home-streak-fire">🔥</span>
+                    <span class="font-display font-black text-pixar-indigo text-lg" id="home-streak-num">0</span>
+                    <span class="font-bold text-pixar-dark text-sm" id="home-streak-label">day streak!</span>
+                </div>
+                
+                <div class="w-full mb-4 sm:mb-6">
+                    <input type="text" id="player-name" placeholder="Enter your name / ใส่ชื่อของหนู" class="w-full px-4 sm:px-6 py-3 sm:py-4 rounded-full border-4 border-gray-200 text-center text-lg sm:text-xl font-bold text-pixar-dark focus:outline-none focus:border-pixar-cyan transition-colors bg-gray-50 placeholder-gray-400">
+                </div>
+                
+                <div id="save-data-info" class="w-full bg-green-50 text-green-700 rounded-xl p-2 sm:p-3 mb-4 text-xs sm:text-sm font-bold border border-green-200 hidden">
+                    Welcome back! You have a saved game.
+                </div>
+
+                <div class="flex flex-col gap-2 sm:gap-3 w-full">
+                    <button type="button" id="btn-continue" class="w-full bg-pixar-green text-white font-display font-black text-lg sm:text-xl py-3 sm:py-4 rounded-full shadow-btn bouncy-btn hidden">
+                        <span class="t-continueGame">Continue Game</span> 🌟
+                    </button>
+                    <button type="button" id="btn-start" class="w-full bg-pixar-orange text-white font-display font-black text-xl sm:text-2xl py-3 sm:py-4 rounded-full shadow-btn bouncy-btn">
+                        <span class="t-start">New Adventure</span> 🚀
+                    </button>
+                    <button type="button" id="btn-battle" class="w-full bg-pixar-indigo text-white font-display font-black text-lg sm:text-xl py-3 sm:py-4 rounded-full shadow-btn bouncy-btn" style="background: linear-gradient(135deg,#6B5B95,#FFB7B2)">
+                        ⚔️ Battle Mode <span class="text-sm font-bold opacity-80">2 Players</span>
+                    </button>
+                    <button type="button" id="btn-avatar-picker" class="w-full bg-pixar-cyan text-white font-display font-black text-lg sm:text-xl py-3 sm:py-4 rounded-full shadow-btn bouncy-btn">
+                        🎨 <span id="btn-avatar-label">Choose Your Avatar</span>
+                    </button>
+                    <button type="button" id="btn-leaderboard" class="w-full bg-pixar-pink text-white font-display font-black text-lg sm:text-xl py-3 sm:py-4 rounded-full shadow-btn bouncy-btn">
+                        <span class="t-leaderboard">Top Players</span> 🏆
+                    </button>
+                    <button type="button" id="btn-sticker-menu" class="w-full bg-pixar-pink text-white font-display font-bold text-base sm:text-lg py-2 sm:py-3 rounded-full shadow-btn bouncy-btn hidden">
+                        <span class="t-stickerBook">Sticker Book</span> 📚
+                    </button>
+                </div>
+                
+                <div class="flex gap-2 mt-4 sm:mt-6">
+                    <button type="button" class="lang-btn px-4 py-2 rounded-full bg-gray-200 text-gray-700 font-bold active-lang text-sm transition-colors" data-lang="en">English</button>
+                    <button type="button" class="lang-btn px-4 py-2 rounded-full bg-gray-100 text-gray-500 font-bold text-sm transition-colors" data-lang="th">ไทย</button>
+                </div>
+
+                <!-- Teacher Login Button -->
+                <button type="button" id="btn-open-teacher-login" class="mt-6 text-sm font-semibold text-pixar-indigo/60 hover:text-pixar-indigo underline decoration-2 underline-offset-4 transition-colors">
+                    Teacher's Log-in 🎒
+                </button>
+            </section>
+
+            <!-- Screen: GAME -->
+            <section id="screen-game" class="absolute w-full h-full flex flex-col items-center justify-start pt-2 hidden opacity-0 z-20">
+
+                <!-- ปุ่มออกจากเกม — มุมซ้ายบน -->
+                <button type="button" id="btn-exit-game"
+                    onclick="confirmExitGame()"
+                    class="absolute top-3 left-3 sm:top-4 sm:left-4 z-30 flex items-center gap-1 bg-white/80 hover:bg-white text-pixar-indigo font-bold text-xs sm:text-sm px-3 py-2 rounded-full shadow-soft border border-white/60 backdrop-blur-sm bouncy-btn transition-all"
+                    title="Exit game / ออกจากเกม">
+                    ← <span class="hidden sm:inline">Home</span>
+                </button>
+                <!-- Prompt Area -->
+                <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl w-[90%] sm:w-full max-w-lg mb-3 sm:mb-6 flex flex-col items-center border-4 border-pixar-cyan relative">
+                    <button type="button" id="btn-listen" class="absolute -top-6 bg-pixar-amber text-white p-3 sm:p-4 rounded-full shadow-btn bouncy-btn text-2xl sm:text-3xl z-10 border-4 border-white">
+                        👂
+                    </button>
+                    <div id="visual-prompt" class="text-5xl sm:text-8xl my-2 sm:my-6 floating">🐱</div>
+                    <!-- Word Slots -->
+                    <div id="word-slots" class="flex gap-2 sm:gap-4 mt-2 sm:mt-4 font-display text-4xl sm:text-6xl font-bold uppercase text-pixar-indigo tracking-widest relative">
+                    </div>
+                    <!-- Progress bar moved INSIDE the card, flush to bottom -->
+                    <div class="w-full mt-3 sm:mt-4 px-1">
+                        <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden border border-gray-200">
+                            <div id="progress-bar" class="bg-gradient-to-r from-pixar-amber to-pixar-orange h-full rounded-full w-0 transition-all duration-500 ease-out shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Letters Area -->
+                <div id="interaction-area" class="w-[95%] sm:w-full max-w-lg">
+                    <p id="instruction-text" class="text-white text-center font-bold mb-2 sm:mb-4 t-instruction drop-shadow-md text-lg sm:text-xl">Choose the missing sound:</p>
+                    <div id="letter-options" class="flex justify-center gap-3 sm:gap-6 flex-wrap"></div>
+                    
+                    <!-- Microphone Practice UI -->
+                    <div id="mic-practice-area" class="w-full flex flex-col items-center justify-center hidden mt-2">
+                        <button type="button" id="btn-mic" class="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-white text-pixar-indigo text-3xl sm:text-4xl shadow-soft border-4 border-gray-200 flex items-center justify-center bouncy-btn transition-colors duration-300">
+                            🎤
+                        </button>
+                        <p id="mic-status" class="text-white font-bold mt-2 sm:mt-4 text-center h-6 t-micPrompt drop-shadow-md text-sm sm:text-base">Tap to speak!</p>
+                        <button type="button" id="btn-skip-mic" class="mt-2 sm:mt-4 text-white/70 text-xs sm:text-sm font-semibold underline hover:text-white t-skip">Skip</button>
+                    </div>
+                </div>
+                
+                <!-- Feedback Overlay -->
+                <div id="feedback-message" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-display font-black text-4xl sm:text-6xl pointer-events-none opacity-0 z-30 drop-shadow-xl text-white outline-text text-center w-full px-4">
+                    Great!
+                </div>
+            </section>
+
+            <!-- Modal: Confirm Exit Game -->
+            <div id="modal-exit-confirm" class="absolute inset-0 flex items-center justify-center z-[200] hidden">
+                <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-xs w-[88%] text-center shadow-2xl">
+                    <div class="text-5xl mb-3">🏠</div>
+                    <h3 class="font-display font-black text-xl text-pixar-indigo mb-1">Go back to Home?</h3>
+                    <p class="text-gray-500 text-sm mb-1">กลับหน้าแรก?</p>
+                    <p class="text-gray-400 text-xs mb-5">Progress in this level will not be saved.<br>คะแนนในด่านนี้จะไม่ถูกบันทึก</p>
+                    <div class="flex gap-3">
+                        <button type="button" onclick="doExitGame()"
+                            class="flex-1 bg-pixar-orange text-white font-display font-black text-base py-3 rounded-full shadow-btn bouncy-btn">
+                            Yes, Exit / ออก
+                        </button>
+                        <button type="button" onclick="closeExitConfirm()"
+                            class="flex-1 bg-gray-200 text-gray-700 font-bold text-base py-3 rounded-full shadow-btn bouncy-btn">
+                            Keep Playing / เล่นต่อ
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Backdrop -->
+            <div id="modal-backdrop" class="absolute inset-0 bg-pixar-dark/40 backdrop-blur-sm z-[45] hidden transition-opacity"></div>
+
+            <!-- Modal: Leaderboard -->
+            <section id="modal-leaderboard" class="absolute w-[90%] sm:w-full max-w-sm flex flex-col items-center text-center glass-card rounded-3xl p-6 sm:p-8 hidden opacity-0 z-50 max-h-[85%] overflow-hidden">
+                <h2 class="font-display font-black text-2xl sm:text-3xl text-pixar-indigo mb-4 t-leaderboard">🏆 Top Players</h2>
+                <div class="w-full flex-1 overflow-y-auto bg-gray-50 rounded-xl p-3 border-2 border-gray-100 shadow-inner mb-4 min-h-[250px]">
+                    <ul id="leaderboard-list" class="space-y-3 text-sm sm:text-base text-left">
+                        <!-- JS injects here -->
+                    </ul>
+                </div>
+                <button type="button" class="btn-close-modal w-full bg-gray-200 text-gray-700 font-bold text-lg py-3 rounded-xl shadow-btn bouncy-btn">Close</button>
+            </section>
+
+            <!-- Modal: Teacher Login -->
+            <section id="modal-teacher-login" class="absolute w-[90%] sm:w-full max-w-sm flex flex-col items-center text-center glass-card rounded-3xl p-6 sm:p-8 hidden opacity-0 z-50">
+                <h2 class="font-display font-black text-2xl sm:text-3xl text-pixar-indigo mb-4">Teacher's Log-in</h2>
+                <input type="text" id="admin-user" placeholder="Username" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-center text-lg font-bold focus:border-pixar-cyan outline-none mb-3">
+                <div class="relative w-full mb-6">
+                    <input type="text" id="admin-pass-real" class="absolute opacity-0 w-[80%] h-full cursor-text z-10 left-0" autocomplete="off">
+                    <div class="w-full h-[52px] bg-white rounded-xl border-2 border-gray-200 flex items-center justify-center text-2xl tracking-widest overflow-hidden relative">
+                        <span id="admin-pass-display"></span>
+                    </div>
+                    <button type="button" id="btn-toggle-pass" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-xl z-20 hover:scale-110 transition-transform focus:outline-none">👁️</button>
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-400 pointer-events-none font-bold" id="admin-pass-placeholder">Password</div>
+                </div>
+                <div id="login-error-msg" class="text-red-500 font-bold text-sm mb-4 hidden">Username หรือ Password ไม่ถูกต้อง!</div>
+                <div class="flex gap-2 w-full">
+                    <button type="button" id="btn-admin-login" class="flex-1 bg-pixar-cyan text-white font-bold text-lg py-3 rounded-xl shadow-btn bouncy-btn">Login</button>
+                    <button type="button" class="btn-close-admin flex-1 bg-gray-200 text-gray-700 font-bold text-lg py-3 rounded-xl shadow-btn bouncy-btn">Cancel</button>
+                </div>
+            </section>
+
+            <!-- Screen: LEVEL COMPLETE -->
+            <section id="screen-level-complete" class="absolute w-[90%] sm:w-full max-w-md flex flex-col items-center text-center glass-card rounded-3xl p-6 sm:p-8 hidden opacity-0 z-40">
+                <h2 class="font-display font-black text-3xl sm:text-4xl text-pixar-orange mb-2 sm:mb-4 t-levelUp">Level Up!</h2>
+                <div id="level-badge-display" class="text-5xl sm:text-7xl mb-4 sm:mb-6 floating">⭐</div>
+                
+                <div class="bg-green-100 rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 w-full shadow-inner border border-green-200">
+                    <h3 class="font-bold text-green-700 mb-1 text-lg sm:text-xl t-levelReward">+50 XP Level Bonus!</h3>
+                </div>
+
+                <p class="text-gray-600 font-medium mb-4 sm:mb-6 t-playPhysics text-sm sm:text-base">Tap the blocks to play!</p>
+
+                <!-- ปุ่มกลับหน้าแรกจาก level complete -->
+                <button type="button" onclick="confirmExitGame()"
+                    class="mt-2 text-gray-400 hover:text-gray-600 text-sm font-semibold underline underline-offset-4 transition-colors">
+                    🏠 Back to Home / กลับหน้าแรก
+                </button>
+            </section>
+
+            <!-- Screen: STICKER BOOK -->
+            <section id="screen-sticker-book" class="absolute w-[95%] sm:w-full max-w-2xl h-[85%] sm:h-[80%] flex flex-col items-center glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 hidden opacity-0 z-40 overflow-hidden">
+                <div class="w-full flex justify-between items-center mb-4 sm:mb-6">
+                    <h2 class="font-display font-black text-2xl sm:text-3xl text-pixar-pink t-stickerBookTitle">My Sticker Book</h2>
+                    <button type="button" class="btn-close-stickers w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold hover:bg-gray-300">X</button>
+                </div>
+                
+                <div class="w-full flex-1 overflow-y-auto bg-gray-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 border-2 border-gray-100 shadow-inner">
+                    <div id="sticker-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4"></div>
+                    <div id="empty-stickers" class="w-full text-center text-gray-400 mt-10 hidden t-emptyStickers text-sm sm:text-base">
+                        Play games to collect stickers!
+                    </div>
+                </div>
+            </section>
+
+            <!-- Screen: END / MASTERY -->
+            <section id="screen-end" class="absolute w-[90%] sm:w-full max-w-md flex flex-col items-center text-center glass-card rounded-3xl p-6 sm:p-8 hidden opacity-0 z-40">
+                <h2 class="font-display font-black text-3xl sm:text-4xl text-pixar-indigo mb-2 t-gameOver">Amazing Work!</h2>
+                <p class="text-gray-500 font-medium mb-2 sm:mb-4 t-finalScore text-sm sm:text-base">Total XP Earned</p>
+                
+                <div class="text-5xl sm:text-6xl font-display font-black text-pixar-amber mb-4 sm:mb-6 drop-shadow-md flex items-center justify-center gap-2">
+                    <span id="final-score-display">0</span> <span class="text-4xl sm:text-5xl">⚡</span>
+                </div>
+                
+                <div class="w-full bg-white rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 shadow-inner text-center border-4 border-pixar-amber">
+                    <h3 class="font-bold text-gray-700 mb-2 text-lg sm:text-xl t-masteryMsg">You are a fantastic reader!</h3>
+                    <div class="text-4xl sm:text-6xl floating">🏆✨</div>
+                </div>
+
+                <div class="flex flex-col gap-2 sm:gap-3 w-full">
+                    <button type="button" id="btn-print-cert" class="w-full bg-pixar-cyan text-white font-bold text-lg sm:text-xl py-3 sm:py-4 rounded-full shadow-btn bouncy-btn flex items-center justify-center gap-2">
+                        <span class="t-printCert">Print Certificate</span> 🖨️
+                    </button>
+                    <button type="button" id="btn-restart" class="w-full bg-gray-200 text-gray-700 font-bold text-lg sm:text-xl py-2 sm:py-3 rounded-full shadow-btn bouncy-btn">
+                        <span class="t-playAgain">Play Again</span> 🔄
+                    </button>
+                    <button type="button" id="btn-home-from-end" class="w-full bg-pixar-orange text-white font-bold text-lg sm:text-xl py-2 sm:py-3 rounded-full shadow-btn bouncy-btn">
+                        <span class="t-backHome">Back to Home</span> 🏠
+                    </button>
+                </div>
+            </section>
+
+            <section id="screen-admin" class="absolute w-[95%] sm:w-full max-w-4xl h-[90%] flex flex-col items-center glass-card rounded-3xl p-6 hidden opacity-0 z-[60] overflow-hidden bg-white/95">
+                <div class="w-full flex flex-wrap justify-between items-center mb-6 gap-4 border-b-2 border-gray-100 pb-4">
+                    <h2 class="font-display font-black text-3xl text-pixar-indigo">Admin Dashboard</h2>
+                    <div class="flex gap-2 flex-wrap">
+                        <button type="button" id="btn-export-excel" class="px-4 py-2 bg-green-500 text-white rounded-lg font-bold shadow-sm hover:bg-green-600 no-print">Excel (CSV)</button>
+                        <button type="button" id="btn-export-word" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold shadow-sm hover:bg-blue-600 no-print">Word</button>
+                        <button type="button" id="btn-export-pdf" class="px-4 py-2 bg-red-500 text-white rounded-lg font-bold shadow-sm hover:bg-red-600 no-print">PDF</button>
+                        <button type="button" class="btn-close-admin px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold shadow-sm hover:bg-gray-300 no-print">Logout</button>
+                    </div>
+                </div>
+
+                <div class="w-full flex gap-4 mb-4 no-print">
+                    <div class="bg-blue-50 text-blue-800 px-4 py-3 rounded-xl border border-blue-200 flex-1 text-center font-bold">
+                        Total Students: <span id="admin-stat-total">0</span>
+                    </div>
+                    <div class="bg-orange-50 text-orange-800 px-4 py-3 rounded-xl border border-orange-200 flex-1 text-center font-bold">
+                        Avg XP: <span id="admin-stat-avg">0</span>
+                    </div>
+                    <button id="btn-admin-add" class="bg-pixar-orange text-white px-4 py-3 rounded-xl font-bold hover:bg-orange-500 shadow-sm">+ Add Score</button>
+                </div>
+
+                <div class="w-full flex-1 overflow-auto rounded-xl border-2 border-gray-100">
+                    <table class="w-full admin-table text-sm sm:text-base">
+                        <thead class="sticky top-0 bg-white shadow-sm z-10">
+                            <tr>
+                                <th>Date</th>
+                                <th>Name</th>
+                                <th>XP Score</th>
+                                <th>Teacher's Feedback</th>
+                                <th class="no-print text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ===== MODAL: AVATAR PICKER ===== -->
+            <section id="modal-avatar" class="absolute w-[92%] sm:w-full max-w-sm flex flex-col items-center text-center glass-card rounded-3xl p-6 hidden opacity-0 z-50">
+                <h2 class="font-display font-black text-2xl text-pixar-indigo mb-1">Choose Your Avatar!</h2>
+                <p class="text-xs text-gray-400 mb-4">เลือกตัวละครประจำตัวของหนู 🎉</p>
+                <div class="grid grid-cols-5 gap-3 mb-5 w-full" id="avatar-grid"></div>
+                <!-- Outfit unlocks -->
+                <div id="outfit-section" class="w-full mb-4 hidden">
+                    <p class="text-xs font-bold text-pixar-indigo mb-2 uppercase tracking-wider">Outfits Unlocked / ชุดที่ได้รับ 👑</p>
+                    <div class="flex gap-2 flex-wrap justify-center" id="outfit-grid"></div>
+                </div>
+                <button type="button" id="btn-confirm-avatar" class="w-full bg-pixar-indigo text-white font-display font-black text-xl py-3 rounded-full shadow-btn bouncy-btn">
+                    Let's Go! 🚀
+                </button>
+            </section>
+
+            <!-- ===== SCREEN: BATTLE MODE ===== -->
+            <section id="screen-battle" class="absolute w-full h-full hidden opacity-0 z-30 overflow-hidden rounded-3xl">
+                <!-- Divider & VS badge -->
+                <div class="battle-divider"></div>
+                <div class="battle-vs-badge">VS</div>
+
+                <!-- Player 1 side (left) -->
+                <div id="battle-p1" class="battle-panel flex flex-col items-center justify-between p-3 sm:p-4 bg-pixar-orange/10 h-full">
+                    <div class="w-full text-center">
+                        <div class="text-xs font-bold text-pixar-orange uppercase tracking-wider mb-1">Player 1</div>
+                        <input type="text" id="battle-name-1" placeholder="Name P1" class="w-full px-3 py-2 rounded-full border-2 border-pixar-orange text-center font-bold text-sm focus:outline-none bg-white/80">
+                        <div class="font-display font-black text-3xl sm:text-4xl text-pixar-orange mt-1" id="battle-score-1">0</div>
+                    </div>
+                    <div class="text-5xl sm:text-7xl my-2" id="battle-visual-1">🐱</div>
+                    <div id="battle-options-1" class="grid grid-cols-3 gap-2 w-full"></div>
+                    <div id="battle-feedback-1" class="text-lg font-black h-7 mt-1"></div>
+                </div>
+
+                <!-- Player 2 side (right) -->
+                <div id="battle-p2" class="battle-panel flex flex-col items-center justify-between p-3 sm:p-4 bg-pixar-cyan/10 h-full">
+                    <div class="w-full text-center">
+                        <div class="text-xs font-bold text-pixar-cyan uppercase tracking-wider mb-1">Player 2</div>
+                        <input type="text" id="battle-name-2" placeholder="Name P2" class="w-full px-3 py-2 rounded-full border-2 border-pixar-cyan text-center font-bold text-sm focus:outline-none bg-white/80">
+                        <div class="font-display font-black text-3xl sm:text-4xl text-pixar-cyan mt-1" id="battle-score-2">0</div>
+                    </div>
+                    <div class="text-5xl sm:text-7xl my-2" id="battle-visual-2">🐶</div>
+                    <div id="battle-options-2" class="grid grid-cols-3 gap-2 w-full"></div>
+                    <div id="battle-feedback-2" class="text-lg font-black h-7 mt-1"></div>
+                </div>
+
+                <!-- Battle question area (full width, center top) -->
+                <div class="absolute top-0 left-0 right-0 flex flex-col items-center pt-2 z-10 pointer-events-none">
+                    <div id="battle-word-display" class="font-display font-black text-4xl sm:text-5xl text-pixar-dark drop-shadow-md bg-white/80 px-6 py-1 rounded-full"></div>
+                    <div id="battle-round-display" class="text-xs font-bold text-gray-500 mt-1">Round 1 / 8</div>
+                    <div id="battle-timer-bar-wrap" class="w-40 h-2 bg-gray-200 rounded-full mt-1 overflow-hidden">
+                        <div id="battle-timer-bar" class="h-full bg-pixar-orange rounded-full transition-none" style="width:100%"></div>
+                    </div>
+                </div>
+
+                <!-- Battle end overlay -->
+                <div id="battle-end-overlay" class="absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-20 hidden">
+                    <div class="text-6xl mb-3" id="battle-winner-emoji">🏆</div>
+                    <h2 class="font-display font-black text-3xl text-pixar-indigo mb-1" id="battle-winner-text">Player 1 Wins!</h2>
+                    <p class="text-gray-500 mb-2" id="battle-final-scores"></p>
+                    <div class="flex gap-3 mt-4">
+                        <button type="button" onclick="restartBattle()" class="bg-pixar-orange text-white font-display font-black text-lg py-3 px-6 rounded-full shadow-btn bouncy-btn">Play Again ⚔️</button>
+                        <button type="button" onclick="exitBattle()" class="bg-gray-200 text-gray-700 font-bold text-base py-3 px-5 rounded-full shadow-btn bouncy-btn">Home 🏠</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== STREAK TOAST ===== -->
+            <div id="streak-toast" class="absolute top-4 left-1/2 -translate-x-1/2 z-[200] hidden">
+                <div class="bg-white rounded-2xl shadow-xl px-6 py-3 flex items-center gap-3 border-2 border-pixar-amber">
+                    <span class="text-3xl" id="streak-toast-fire">🔥</span>
+                    <div>
+                        <div class="font-display font-black text-pixar-indigo text-lg" id="streak-toast-title">Day 3 Streak!</div>
+                        <div class="text-xs text-gray-400" id="streak-toast-sub">+15 Bonus XP</div>
+                    </div>
+                </div>
+            </div>
+
+        <!-- Progress Bar Footer (now inside game card — kept for JS reference only) -->
+        <footer id="game-footer" class="hidden" aria-hidden="true">
+            <div class="w-full bg-black/20 rounded-full h-4 backdrop-blur-sm border border-white/30 overflow-hidden relative">
+                <div id="progress-bar-old" class="bg-gradient-to-r from-pixar-amber to-pixar-orange h-full rounded-full w-0 transition-all duration-500 ease-out"></div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Matter.js Canvas Container -->
+    <div id="matter-container"></div>
+
+    <div id="print-area" class="hidden bg-white w-full h-full flex items-center justify-center p-10 print-bg">
+        <div class="w-full max-w-4xl border-[16px] border-pixar-cyan p-12 rounded-3xl text-center relative bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]">
+            <div class="absolute -top-8 -left-8 w-24 h-24 bg-pixar-amber rounded-full z-10 border-8 border-white"></div>
+            <div class="absolute -bottom-8 -right-8 w-24 h-24 bg-pixar-orange rounded-full z-10 border-8 border-white"></div>
+            <h1 class="text-6xl font-display font-black text-pixar-indigo mb-6 tracking-wide">CERTIFICATE OF MASTERY</h1>
+            <h2 class="text-3xl font-bold text-gray-500 mb-10">Phonics Factory Champion</h2>
+            <p class="text-2xl text-gray-600 mb-4">This certificate is proudly presented to</p>
+            <div class="w-4/5 mx-auto border-b-4 border-gray-300 pb-2 mb-10">
+                <p id="cert-name" class="text-6xl font-display font-bold text-pixar-dark capitalize"></p>
+            </div>
+            <p class="text-2xl text-gray-600 mb-8">For demonstrating outstanding decoding skills and earning</p>
+            <div class="inline-block bg-yellow-100 border-4 border-yellow-400 rounded-full px-8 py-4 mb-10">
+                <p class="text-4xl font-bold text-yellow-700"><span id="cert-xp"></span> XP ⚡</p>
+            </div>
+            <div class="flex justify-center gap-4 mb-12 flex-wrap" id="cert-badges"></div>
+            <div class="flex justify-between items-end mt-12 pt-8 border-t-2 border-gray-200">
+                <div class="text-center">
+                    <p class="text-xl font-bold text-pixar-indigo border-b-2 border-pixar-indigo pb-2 mb-2 w-48 mx-auto">Jirayu Goh</p>
+                    <p class="text-gray-500 font-medium">Course Instructor</p>
+                </div>
+                <div class="w-32 h-32 bg-yellow-400 rounded-full flex items-center justify-center border-4 border-yellow-500 shadow-lg transform rotate-12">
+                    <span class="text-6xl">🏆</span>
+                </div>
+                <div class="text-center">
+                    <p class="text-xl font-bold text-gray-700 border-b-2 border-gray-400 pb-2 mb-2 w-48 mx-auto" id="cert-date"></p>
+                    <p class="text-gray-500 font-medium">Date Achieved</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            elevenLabsApiKey: "", 
+            voiceId: "MF3mGyEYCl7XYWbV9V6O", 
+            totalLevels: 6, 
+            questionsPerLevel: 6,
+            battleRounds: 8,
+            streakBonusXP: 15
+        };
+
+        const defaultState = {
+            playerName: "", score: 0, level: 1, currentQIndex: 0,
+            language: 'en', soundEnabled: true, attempts: 0,
+            badges: [], unlockedWords: [], isPlaying: false, levelPerfect: true,
+            // Avatar
+            avatarEmoji: '🐱',
+            avatarOutfit: '',
+            // Streak
+            streakCount: 0,
+            lastPlayedDate: ''
+        };
+
+        let state = { ...defaultState };
+
+        const levelNamesEn = {
+            1: "Short A Words", 2: "Short E Words", 3: "Short I Words", 
+            4: "Short O Words", 5: "Short U Words", 6: "Phonics Champion"
+        };
+        const levelNamesTh = {
+            1: "คำศัพท์สระ A", 2: "คำศัพท์สระ E", 3: "คำศัพท์สระ I", 
+            4: "คำศัพท์สระ O", 5: "คำศัพท์สระ U", 6: "แชมเปี้ยนโฟนิกส์"
+        };
+
+        const translations = {
+            en: {
+                start: "New Adventure", continueGame: "Continue Game", score: "XP", level: "Level",
+                instruction: "Choose the missing sound:", levelUp: "Level Up!", levelReward: "+50 XP Level Bonus!",
+                playPhysics: "Tap the blocks to play!", continue: "Continue", gameOver: "Amazing Work!",
+                finalScore: "Total XP Earned", playAgain: "Play Again", masteryMsg: "You are a fantastic reader!",
+                feedbackCorrect: ["Great!", "Awesome!", "Perfect!", "You did it!"],
+                feedbackWrong: ["Let's try again!", "Listen closely...", "You can do it!"],
+                stickerBook: "Sticker Book", stickerBookTitle: "My Sticker Book", emptyStickers: "Play games to collect stickers!",
+                printCert: "Print Certificate", micPrompt: "Tap to speak!", skip: "Skip",
+                listening: "Listening...", micGood: "Voice Star! 🌟", micTry: "Nice try! Let's move on.",
+                backHome: "Back to Home", leaderboard: "🏆 Top Players"
+            },
+            th: {
+                start: "เริ่มการผจญภัย", continueGame: "เล่นต่อ", score: "XP", level: "ระดับ",
+                instruction: "เลือกเสียงที่หายไป:", levelUp: "เลื่อนระดับ!", levelReward: "โบนัสผ่านด่าน +50 XP!",
+                playPhysics: "โยนบล็อกเล่นสิ!", continue: "ดำเนินการต่อ", gameOver: "ทำได้ยอดเยี่ยมมาก!",
+                finalScore: "XP ที่สะสมได้ทั้งหมด", playAgain: "เริ่มเล่นใหม่", masteryMsg: "หนูอ่านหนังสือเก่งมากเลย!",
+                feedbackCorrect: ["เยี่ยมมาก!", "สุดยอด!", "สมบูรณ์แบบ!", "หนูทำได้!"],
+                feedbackWrong: ["ลองอีกครั้งนะ!", "ตั้งใจฟังอีกนิด...", "หนูทำได้!"],
+                stickerBook: "สมุดสติ๊กเกอร์", stickerBookTitle: "สมุดสติ๊กเกอร์ของฉัน", emptyStickers: "เล่นเกมเพื่อสะสมสติ๊กเกอร์นะ!",
+                printCert: "พิมพ์ใบประกาศ", micPrompt: "แตะเพื่อพูด!", skip: "ข้าม",
+                listening: "กำลังฟัง...", micGood: "ดาวเสียงเยี่ยม! 🌟", micTry: "เก่งมาก! ไปต่อกันเถอะ",
+                backHome: "กลับหน้าแรก", leaderboard: "🏆 อันดับคะแนน"
+            }
+        };
+
+        const wordDatabase = [
+            { word: "cat", missingIdx: 1, options: ["a", "e", "i"], icon: "🐱", level: 1 },
+            { word: "bat", missingIdx: 0, options: ["b", "p", "d"], icon: "🦇", level: 1 },
+            { word: "map", missingIdx: 2, options: ["p", "t", "d"], icon: "🗺️", level: 1 },
+            { word: "jam", missingIdx: 0, options: ["j", "y", "g"], icon: "🍯", level: 1 },
+            { word: "rat", missingIdx: 2, options: ["t", "d", "p"], icon: "🐀", level: 1 },
+            { word: "van", missingIdx: 1, options: ["a", "o", "u"], icon: "🚐", level: 1 },
+            { word: "hat", missingIdx: 0, options: ["h", "t", "f"], icon: "🎩", level: 1 },
+            { word: "pan", missingIdx: 2, options: ["n", "m", "p"], icon: "🍳", level: 1 },
+            { word: "bed", missingIdx: 1, options: ["e", "a", "i"], icon: "🛏️", level: 2 },
+            { word: "pen", missingIdx: 2, options: ["n", "m", "p"], icon: "🖊️", level: 2 },
+            { word: "net", missingIdx: 0, options: ["n", "m", "h"], icon: "🥅", level: 2 },
+            { word: "hen", missingIdx: 2, options: ["n", "m", "p"], icon: "🐔", level: 2 },
+            { word: "web", missingIdx: 1, options: ["e", "a", "o"], icon: "🕸️", level: 2 },
+            { word: "leg", missingIdx: 2, options: ["g", "p", "c"], icon: "🦵", level: 2 },
+            { word: "ten", missingIdx: 0, options: ["t", "d", "p"], icon: "🔟", level: 2 },
+            { word: "red", missingIdx: 1, options: ["e", "i", "u"], icon: "🔴", level: 2 },
+            { word: "pig", missingIdx: 1, options: ["i", "e", "a"], icon: "🐷", level: 3 },
+            { word: "zip", missingIdx: 0, options: ["z", "s", "c"], icon: "🤐", level: 3 },
+            { word: "lip", missingIdx: 2, options: ["p", "b", "t"], icon: "👄", level: 3 },
+            { word: "pin", missingIdx: 1, options: ["i", "a", "e"], icon: "📌", level: 3 },
+            { word: "six", missingIdx: 2, options: ["x", "s", "t"], icon: "6️⃣", level: 3 },
+            { word: "sit", missingIdx: 0, options: ["s", "c", "z"], icon: "🪑", level: 3 },
+            { word: "bin", missingIdx: 1, options: ["i", "e", "o"], icon: "🗑️", level: 3 },
+            { word: "fin", missingIdx: 0, options: ["f", "v", "th"], icon: "🦈", level: 3 },
+            { word: "dog", missingIdx: 1, options: ["o", "a", "u"], icon: "🐶", level: 4 },
+            { word: "fox", missingIdx: 2, options: ["x", "s", "t"], icon: "🦊", level: 4 },
+            { word: "box", missingIdx: 1, options: ["o", "a", "e"], icon: "📦", level: 4 },
+            { word: "log", missingIdx: 2, options: ["g", "k", "c"], icon: "🪵", level: 4 },
+            { word: "pot", missingIdx: 0, options: ["p", "b", "t"], icon: "🍲", level: 4 },
+            { word: "dot", missingIdx: 1, options: ["o", "u", "a"], icon: "🔴", level: 4 }, 
+            { word: "top", missingIdx: 2, options: ["p", "t", "b"], icon: "🔝", level: 4 },
+            { word: "hop", missingIdx: 0, options: ["h", "f", "p"], icon: "🦘", level: 4 },
+            { word: "sun", missingIdx: 1, options: ["u", "a", "o"], icon: "☀️", level: 5 },
+            { word: "cup", missingIdx: 2, options: ["p", "t", "d"], icon: "☕", level: 5 },
+            { word: "bug", missingIdx: 1, options: ["u", "o", "i"], icon: "🐞", level: 5 },
+            { word: "nut", missingIdx: 0, options: ["n", "m", "h"], icon: "🥜", level: 5 },
+            { word: "bus", missingIdx: 2, options: ["s", "z", "c"], icon: "🚌", level: 5 },
+            { word: "tub", missingIdx: 1, options: ["u", "a", "e"], icon: "🛁", level: 5 },
+            { word: "rug", missingIdx: 2, options: ["g", "p", "c"], icon: "🪣", level: 5 },
+            { word: "mud", missingIdx: 0, options: ["m", "n", "p"], icon: "🟫", level: 5 },
+            { word: "cat", missingIdx: 1, options: ["a", "e", "i"], icon: "🐱", level: 6 },
+            { word: "bed", missingIdx: 2, options: ["d", "t", "b"], icon: "🛏️", level: 6 },
+            { word: "pig", missingIdx: 0, options: ["p", "b", "d"], icon: "🐷", level: 6 },
+            { word: "dog", missingIdx: 1, options: ["o", "a", "u"], icon: "🐶", level: 6 },
+            { word: "sun", missingIdx: 2, options: ["n", "m", "t"], icon: "☀️", level: 6 },
+            { word: "van", missingIdx: 0, options: ["v", "w", "f"], icon: "🚐", level: 6 },
+            { word: "zip", missingIdx: 1, options: ["i", "e", "a"], icon: "🤐", level: 6 },
+            { word: "fox", missingIdx: 2, options: ["x", "s", "t"], icon: "🦊", level: 6 }
+        ];
+
+        let currentLevelWords = [];
+        let currentQuestion = null;
+
+        const sounds = {
+            click: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'], volume: 0.5 }),
+            correct: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3'], volume: 0.7 }),
+            wrong: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3'], volume: 0.3 }),
+            levelUp: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'], volume: 0.8 }),
+            pop: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2422/2422-preview.mp3'], volume: 0.6 })
+        };
+
+        function unlockAudio() {
+            const utterance = new SpeechSynthesisUtterance('');
+            utterance.volume = 0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function playTTS(text, slow = false) {
+            if (!state.soundEnabled) return;
+            window.speechSynthesis.cancel(); 
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = slow ? 0.6 : 0.8;
+            utterance.pitch = 1.2;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+        let micTimeout = null; 
+        
+        if (SpeechRecognition) {
+            try {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+            } catch(e) {
+                console.warn("Speech init failed", e);
+            }
+        }
+
+        function saveData() {
+            if(!state.playerName) return;
+            localStorage.setItem('phonicsFactorySave', JSON.stringify(state));
+            saveToGlobalStudents(); 
+        }
+
+        // ── Supabase integration ───────────────────────────────────────────────
+        // API endpoint ผ่าน Netlify Function (key ซ่อนอยู่ฝั่ง server)
+        const SCORES_API = '/.netlify/functions/scores';
+
+        async function saveToGlobalStudents() {
+            const today = new Date().toLocaleDateString('th-TH');
+            const payload = {
+                name:    state.playerName,
+                score:   state.score,
+                level:   state.level,
+                badges:  (state.badges || []).join(','),
+                date:    today,
+            };
+
+            // บันทึก localStorage ก่อนเสมอ (fallback ถ้า offline)
+            try {
+                let all = JSON.parse(localStorage.getItem('phonicsFactoryAllStudents') || '[]');
+                let ex  = all.find(s => s.name === state.playerName);
+                if (ex) { ex.score = state.score; ex.date = today; }
+                else all.push({ id: Date.now(), ...payload, feedback: '' });
+                localStorage.setItem('phonicsFactoryAllStudents', JSON.stringify(all));
+            } catch(e) {}
+
+            // ส่งขึ้น Supabase
+            try {
+                await fetch(SCORES_API, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(payload),
+                });
+            } catch(e) {
+                console.warn('Supabase save failed (offline?) — localStorage fallback used.', e);
+            }
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('phonicsFactorySave');
+            if(saved) {
+                const parsed = JSON.parse(saved);
+                state = { ...defaultState, ...parsed };
+                if(state.level === 0) state.level = 1; 
+                document.getElementById('player-name').value = state.playerName;
+                document.getElementById('btn-continue').classList.remove('hidden');
+                document.getElementById('save-data-info').classList.remove('hidden');
+                if(state.unlockedWords && state.unlockedWords.length > 0) {
+                    document.getElementById('btn-sticker-menu').classList.remove('hidden');
+                }
+            }
+        }
+
+        async function renderLeaderboard() {
+            const list = document.getElementById('leaderboard-list');
+            if (!list) return;
+            list.innerHTML = `<li class="text-center text-gray-400 italic py-4">Loading...</li>`;
+
+            let all = [];
+            try {
+                const res = await fetch(SCORES_API);
+                if (res.ok) all = await res.json();
+                else throw new Error();
+            } catch(e) {
+                all = JSON.parse(localStorage.getItem('phonicsFactoryAllStudents') || '[]');
+            }
+
+            // กรองคนที่ถูก mark ว่า deleted
+            all = all.filter(p => p.score >= 0 && p.feedback !== '__DELETED__');
+            all.sort((a, b) => b.score - a.score);
+            list.innerHTML = '';
+
+            if (all.length === 0) {
+                list.innerHTML = `<li class="text-center text-gray-500 italic py-4">No scores yet! Play to rank up!</li>`;
+                return;
+            }
+
+            all.slice(0, 10).forEach((player, index) => {
+                let rankIcon  = '🏅';
+                let rankClass = 'bg-white text-gray-700';
+                if (index === 0) { rankIcon = '🥇'; rankClass = 'bg-yellow-50 border border-yellow-300 text-yellow-800 scale-[1.02] shadow-md font-black'; }
+                else if (index === 1) { rankIcon = '🥈'; rankClass = 'bg-gray-100 border border-gray-300 text-gray-800 font-bold'; }
+                else if (index === 2) { rankIcon = '🥉'; rankClass = 'bg-orange-50 border border-orange-300 text-orange-900 font-bold'; }
+
+                const li = document.createElement('li');
+                li.className = `flex justify-between items-center px-4 py-3 rounded-xl shadow-sm transition-transform ${rankClass}`;
+                li.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 text-center text-2xl drop-shadow-sm">${rankIcon}</span>
+                        <span class="truncate max-w-[140px] sm:max-w-[160px] text-lg">${player.name}</span>
+                    </div>
+                    <span class="text-pixar-orange text-lg font-black">${player.score} ⚡</span>`;
+                list.appendChild(li);
+            });
+        }
+
+        const D = {
+            screens: {
+                start: document.getElementById('screen-start'), game: document.getElementById('screen-game'),
+                levelComplete: document.getElementById('screen-level-complete'), end: document.getElementById('screen-end'),
+                stickerBook: document.getElementById('screen-sticker-book'), battle: document.getElementById('screen-battle')
+            },
+            header: document.getElementById('game-header'), footer: document.getElementById('game-footer'),
+            score: document.getElementById('score-display'), level: document.getElementById('level-display'),
+            visualPrompt: document.getElementById('visual-prompt'), wordSlots: document.getElementById('word-slots'),
+            letterOptions: document.getElementById('letter-options'), feedback: document.getElementById('feedback-message'),
+            progressBar: document.getElementById('progress-bar'), badgeContainer: document.getElementById('badge-container')
+        };
+
+        function updateTranslation() {
+            const t = translations[state.language];
+            document.querySelectorAll('[class*="t-"]').forEach(el => {
+                const classMatch = Array.from(el.classList).find(c => c.startsWith('t-'));
+                if (classMatch && t[classMatch.substring(2)]) {
+                    el.innerText = t[classMatch.substring(2)];
+                }
+            });
+
+            if (state.isPlaying || state.level > 0) {
+                const levelPrefix = state.language === 'th' ? "ระดับ" : "Level";
+                document.getElementById('level-name-display').innerText = `${levelPrefix} ${state.level}`;
+                D.level.innerText = state.language === 'th' ? levelNamesTh[state.level] : levelNamesEn[state.level];
+            }
+
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if (btn.dataset.lang === state.language) {
+                    btn.classList.replace('bg-gray-100', 'bg-pixar-cyan');
+                    btn.classList.replace('text-gray-500', 'text-white');
+                } else {
+                    btn.classList.replace('bg-pixar-cyan', 'bg-gray-100');
+                    btn.classList.replace('text-white', 'text-gray-500');
+                }
+            });
+        }
+
+        function switchScreen(screenId) {
+            // Bug 3 fix: always destroy physics before any screen transition
+            // prevents canvas + letter labels bleeding into the next screen
+            stopPhysicsMinigame();
+
+            Object.keys(D.screens).forEach(key => {
+                const screen = D.screens[key];
+                gsap.killTweensOf(screen); 
+                if (key !== screenId && !screen.classList.contains('hidden')) {
+                    screen.classList.add('hidden');
+                    screen.style.opacity = 0;
+                }
+            });
+
+            // Also hide admin screen when switching away from it
+            const adminScreen = document.getElementById('screen-admin');
+            if (adminScreen && !adminScreen.classList.contains('hidden') && screenId !== 'admin') {
+                adminScreen.classList.add('hidden');
+            }
+
+            const nextScreen = D.screens[screenId];
+            if (!nextScreen) return;
+            nextScreen.classList.remove('hidden');
+            gsap.fromTo(nextScreen, { opacity: 0, scale: 0.9, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.5)", delay: 0.1 });
+
+            // Fix: null-guard header and footer before any classList/gsap call
+            const toAnimate = [D.header, D.footer].filter(Boolean);
+            gsap.killTweensOf(toAnimate);
+            if (screenId === 'game' || screenId === 'stickerBook') {
+                if (D.header) D.header.classList.remove('hidden');
+                if (screenId === 'game') { if (D.footer) D.footer.classList.remove('hidden'); }
+                else { if (D.footer) D.footer.classList.add('hidden'); }
+                if (toAnimate.length) gsap.to(toAnimate, { opacity: 1, duration: 0.5, delay: 0.4 });
+            } else {
+                if (toAnimate.length) gsap.to(toAnimate, { opacity: 0, duration: 0.3, onComplete: () => {
+                    if(screenId !== 'levelComplete') {
+                        if (D.header) D.header.classList.add('hidden');
+                        if (D.footer) D.footer.classList.add('hidden');
+                    }
+                }});
+            }
+        }
+
+        async function initGame(isContinue = false) {
+            const nameInput = document.getElementById('player-name').value.trim();
+            if(!nameInput) {
+                gsap.to('#player-name', {x: [-10,10,-10,10,0], duration: 0.4});
+                return;
+            }
+
+            unlockAudio();
+            state.playerName = nameInput;
+            saveData();
+
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(track => track.stop());
+                }
+            } catch (e) { }
+
+            if(!isContinue) {
+                state = { ...defaultState, playerName: nameInput, language: state.language, soundEnabled: state.soundEnabled };
+            }
+
+            state.isPlaying = true;
+            D.score.innerText = state.score;
+            D.badgeContainer.innerHTML = '';
+            if (state.badges) {
+                state.badges.forEach(b => {
+                    const badge = document.createElement('div');
+                    badge.className = 'w-6 h-6 bg-white rounded-full flex items-center justify-center text-xs shadow-soft border border-pixar-amber';
+                    badge.innerText = b;
+                    D.badgeContainer.appendChild(badge);
+                });
+            }
+            updateAvatarHUD();
+            // Check daily streak when starting a game session
+            checkAndUpdateStreak();
+            setupLevel();
+            switchScreen('game');
+            saveData();
+        }
+
+        function setupLevel() {
+            state.isPlaying = true;  // Fix: ensure buttons respond after level transition
+            state.currentQIndex = 0; // Fix: always reset question index for new level
+            currentLevelWords = wordDatabase
+                .filter(w => w.level === state.level)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, CONFIG.questionsPerLevel); 
+            
+            state.levelPerfect = true; 
+            
+            updateTranslation(); 
+            updateProgressUI();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            state.attempts = 0;
+            currentQuestion = currentLevelWords[state.currentQIndex];
+            
+            // --- Reset ALL interactive state from previous question/level ---
+            // Re-show letter options area and instruction, hide mic area
+            const letterOptionsEl = document.getElementById('letter-options');
+            const instructionEl   = document.getElementById('instruction-text');
+            const micAreaEl       = document.getElementById('mic-practice-area');
+            const micStatusEl     = document.getElementById('mic-status');
+            const btnMic          = document.getElementById('btn-mic');
+
+            if (letterOptionsEl) {
+                letterOptionsEl.classList.remove('hidden');
+                letterOptionsEl.style.pointerEvents = '';  // clear any inline override
+            }
+            if (instructionEl)  instructionEl.classList.remove('hidden');
+            if (micAreaEl)      micAreaEl.classList.add('hidden');
+            if (micStatusEl) {
+                micStatusEl.classList.remove('text-green-400', 'text-red-400');
+                micStatusEl.innerText = translations[state.language].micPrompt || 'Tap to speak!';
+            }
+            if (btnMic) {
+                btnMic.innerHTML = '🎤';
+                btnMic.disabled = false;
+                btnMic.classList.remove('mic-listening');
+            }
+            // ---------------------------------------------------------------
+
+            D.visualPrompt.innerText = currentQuestion.icon;
+            gsap.from(D.visualPrompt, { scale: 0, rotation: -180, duration: 0.6, ease: "back.out(1.7)" });
+
+            D.wordSlots.innerHTML = '';
+            const letters = currentQuestion.word.split('');
+            letters.forEach((letter, index) => {
+                const slot = document.createElement('div');
+                slot.className = `w-14 h-16 sm:w-20 sm:h-24 rounded-xl sm:rounded-2xl flex items-center justify-center bg-gray-100 shadow-inner border-2 border-gray-200 letter-slot ${index === currentQuestion.missingIdx ? 'active bg-white' : ''}`;
+                
+                if (index === currentQuestion.missingIdx) {
+                    slot.innerText = '_';
+                    slot.id = 'active-slot';
+                } else {
+                    slot.innerText = letter;
+                    slot.classList.add('text-gray-400');
+                }
+                D.wordSlots.appendChild(slot);
+            });
+
+            // Rebuild option buttons fresh — no disabled/stale state carried over
+            D.letterOptions.innerHTML = '';
+            const options = [...currentQuestion.options].sort(() => 0.5 - Math.random());
+            
+            options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.disabled = false;
+                btn.className = `w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-white border-b-4 sm:border-b-[6px] border-gray-300 text-3xl sm:text-5xl font-display font-bold text-pixar-indigo shadow-md bouncy-btn option-btn flex items-center justify-center uppercase`;
+                btn.style.pointerEvents = '';  // clear any inline override
+                btn.innerText = opt;
+                btn.onclick = (e) => { e.preventDefault(); handleAnswer(opt, btn); };
+                D.letterOptions.appendChild(btn);
+                
+                gsap.fromTo(btn, 
+                    { scale: 0, opacity: 0 }, 
+                    { scale: 1, opacity: 1, duration: 0.4, delay: 0.2 + (idx * 0.1), ease: "back.out(2)" }
+                );
+            });
+
+            setTimeout(() => playTTS(currentQuestion.word, true), 800);
+        }
+
+        function handleAnswer(selectedLetter, btnElement) {
+            if (!state.isPlaying || btnElement.disabled) return;
+            const isCorrect = selectedLetter === currentQuestion.word[currentQuestion.missingIdx];
+            
+            if (isCorrect) {
+                if(state.soundEnabled) sounds.correct.play();
+                playTTS(selectedLetter); 
+                updateScore(state.attempts === 0 ? 15 : 10);
+
+                const activeSlot = document.getElementById('active-slot');
+                activeSlot.innerText = selectedLetter;
+                activeSlot.classList.remove('text-gray-400');
+                activeSlot.classList.add('text-pixar-cyan', 'bg-cyan-50', 'border-pixar-cyan');
+                
+                btnElement.classList.replace('bg-white', 'bg-green-400');
+                btnElement.classList.replace('text-pixar-indigo', 'text-white');
+                btnElement.classList.replace('border-gray-300', 'border-green-600');
+
+                document.querySelectorAll('.option-btn').forEach(b => { b.disabled = true; b.style.pointerEvents = 'none'; });
+
+                if(!state.unlockedWords) state.unlockedWords = [];
+                if(!state.unlockedWords.find(w => w.word === currentQuestion.word)) {
+                    state.unlockedWords.push({ word: currentQuestion.word, icon: currentQuestion.icon });
+                    saveData();
+                }
+
+                showFeedback(true);
+                fireConfetti();
+                setTimeout(() => playKaraoke(currentQuestion.word), 1000);
+
+            } else {
+                if(state.soundEnabled) sounds.wrong.play();
+                state.attempts++;
+                state.levelPerfect = false; 
+                
+                gsap.to(btnElement, { x: [-3, 3, -3, 3, 0], duration: 0.3 }); 
+                btnElement.classList.replace('bg-white', 'bg-gray-100');
+                btnElement.classList.replace('text-pixar-indigo', 'text-gray-400');
+                btnElement.classList.replace('border-gray-300', 'border-gray-200');
+                btnElement.disabled = true;
+
+                showFeedback(false);
+                setTimeout(() => playTTS(currentQuestion.word, true), 500);
+            }
+        }
+
+        function playKaraoke(word) {
+            playTTS(word);
+            const slots = document.querySelectorAll('.letter-slot');
+            const tl = gsap.timeline({ onComplete: initVoicePractice });
+            slots.forEach((slot, i) => {
+                tl.to(slot, { scale: 1.2, y: -10, color: '#FFB7B2', borderColor: '#FFB7B2', backgroundColor: '#FFF7ED', duration: 0.3, yoyo: true, repeat: 1 }, i * 0.3); 
+            });
+        }
+
+        function initVoicePractice() {
+            if (!SpeechRecognition) {
+                setTimeout(advanceGame, 1000); 
+                return;
+            }
+            document.getElementById('letter-options').classList.add('hidden');
+            document.getElementById('instruction-text').classList.add('hidden');
+            const micArea = document.getElementById('mic-practice-area');
+            micArea.classList.remove('hidden');
+            document.getElementById('mic-status').innerText = translations[state.language].micPrompt;
+            document.getElementById('mic-status').classList.remove('text-green-400');
+            gsap.from(micArea, {opacity: 0, y: 20, duration: 0.5});
+        }
+
+        function startListening() {
+            if (isListening) return;
+            window.speechSynthesis.cancel();
+            const btnMic = document.getElementById('btn-mic');
+            const status = document.getElementById('mic-status');
+
+            // Reset ทุกอย่างจาก attempt ก่อนหน้า
+            btnMic.innerHTML = '🎤';
+            btnMic.disabled = false;
+            status.classList.remove('text-green-400', 'text-red-400');
+            clearTimeout(micTimeout);
+
+            try {
+                if (!recognition) throw new Error("No SpeechRecognition API");
+
+                isListening = true;
+                recognition.start();
+                btnMic.classList.add('mic-listening');
+                status.innerText = translations[state.language].listening;
+                if (state.soundEnabled) sounds.click.play();
+
+                // 10 วินาทีถ้าไม่ได้ยินอะไรเลย
+                micTimeout = setTimeout(() => {
+                    if (isListening) {
+                        try { recognition.stop(); } catch(e) {}
+                        isListening = false;
+                        btnMic.classList.remove('mic-listening');
+                        btnMic.innerHTML = '🎤';
+                        status.classList.remove('text-green-400', 'text-red-400');
+                        status.innerText = translations[state.language].micTry || "Nice try! Let's move on.";
+                        setTimeout(advanceGame, 1800);
+                    }
+                }, 10000);
+
+                // พอได้ยินเสียงพูดแล้ว reset เป็น 6 วินาที
+                recognition.onspeechstart = () => {
+                    clearTimeout(micTimeout);
+                    micTimeout = setTimeout(() => {
+                        if (isListening) {
+                            try { recognition.stop(); } catch(e) {}
+                            isListening = false;
+                            btnMic.classList.remove('mic-listening');
+                            btnMic.innerHTML = '🎤';
+                            status.classList.remove('text-green-400', 'text-red-400');
+                            status.innerText = translations[state.language].micTry || "Nice try!";
+                            setTimeout(advanceGame, 1800);
+                        }
+                    }, 6000);
+                };
+
+                recognition.onresult = (event) => {
+                    clearTimeout(micTimeout);
+                    isListening = false;
+                    btnMic.classList.remove('mic-listening');
+
+                    const rawTranscript = event.results[0][0].transcript.toLowerCase().trim();
+                    const transcript = rawTranscript.replace(/[.,?!;]/g, '').trim();
+                    const targetWord = currentQuestion.word.toLowerCase();
+                    let isMatch = false;
+
+                    if (transcript === targetWord || transcript.split(/\s+/).includes(targetWord)) {
+                        isMatch = true;
+                    } else {
+                        const fallbacks = {
+                            "bat":["bad","bet","bath","but","back"], "dog":["dock","duck","dot"],
+                            "fox":["box","fog","folk","forks"], "map":["mac","mat","mad"],
+                            "sun":["son","some","sang"], "bed":["bet","bad","pet"],
+                            "car":["cal","cow","cat"], "net":["ned","nest","let"],
+                            "pen":["pan","pin","pain","ten"], "hat":["had","head","has"],
+                            "cat":["cad","cap","cash","catch"], "pig":["pick","peak","big","peg"],
+                            "bus":["bas","boss","buzz"], "jam":["gem","jump"],
+                            "rat":["red","rad","wrap"], "van":["man","wan","one","when"],
+                            "web":["wet","wave","whip"], "zip":["sip","zib","chip","ship"],
+                            "box":["boss","bog","bot","barks"], "bug":["bag","buck","bark","pug"],
+                            "log":["lock","rock","long"], "pot":["pod","port","put","pop"],
+                            "nut":["not","nat","none"], "lip":["leave","leap","live"],
+                            "cup":["cub","cop","cap"], "hen":["hand","han","pen"]
+                        };
+                        const words = transcript.split(/\s+/);
+                        if (fallbacks[targetWord]) {
+                            isMatch = fallbacks[targetWord].some(fw => words.includes(fw) || transcript.includes(fw));
+                        }
+                        if (!isMatch && targetWord.length >= 3) {
+                            for (let w of words) {
+                                if (Math.abs(w.length - targetWord.length) <= 1) {
+                                    let matches = 0;
+                                    for (let i = 0; i < Math.min(w.length, targetWord.length); i++) {
+                                        if (w[i] === targetWord[i]) matches++;
+                                    }
+                                    if (matches >= targetWord.length - 1) { isMatch = true; break; }
+                                }
+                            }
+                        }
+                    }
+
+                    if (isMatch) {
+                        btnMic.innerHTML = '🎤';
+                        status.classList.add('text-green-400');
+                        status.classList.remove('text-red-400');
+                        status.innerText = translations[state.language].micGood;
+                        updateScore(10);
+                        fireConfetti();
+                        if (state.soundEnabled) sounds.correct.play();
+                        showFeedback(true);
+                        setTimeout(advanceGame, 2000);
+                    } else {
+                        // ❌ ผิด — บอกว่าได้ยินอะไร ให้กด 🔄 ลองใหม่ หรือรอ 8 วิแล้วข้ามเอง
+                        btnMic.innerHTML = '🔄';
+                        btnMic.title = 'Try again / ลองอีกครั้ง';
+                        status.classList.remove('text-green-400');
+                        status.classList.add('text-red-400');
+                        status.innerText = transcript
+                            ? `❌ "${transcript}" — try again! / ลองอีกครั้ง`
+                            : `❌ Try again! / ลองอีกครั้ง`;
+                        if (state.soundEnabled) sounds.pop.play();
+                        showFeedback(false);
+
+                        micTimeout = setTimeout(() => {
+                            if (!isListening) {
+                                btnMic.innerHTML = '🎤';
+                                status.classList.remove('text-red-400');
+                                status.innerText = translations[state.language].micTry || "Nice try!";
+                                advanceGame();
+                            }
+                        }, 8000);
+                    }
+                };
+
+                recognition.onerror = (e) => {
+                    clearTimeout(micTimeout);
+                    isListening = false;
+                    btnMic.classList.remove('mic-listening');
+                    btnMic.innerHTML = '🎤';
+                    status.classList.remove('text-green-400', 'text-red-400');
+
+                    if (e.error === 'no-speech') {
+                        status.innerText = "🎤 ไม่ได้ยินเสียง — กดอีกครั้ง!";
+                        return;
+                    }
+                    if (e.error === 'aborted') {
+                        return; // iOS fires this after onresult — ไม่ต้องทำอะไร
+                    }
+                    status.innerText = translations[state.language].micTry || "Nice try!";
+                    setTimeout(advanceGame, 1800);
+                };
+
+                recognition.onend = () => {
+                    if (!isListening) btnMic.classList.remove('mic-listening');
+                };
+
+            } catch(e) {
+                clearTimeout(micTimeout);
+                isListening = false;
+                btnMic.innerHTML = '🎤';
+                status.innerText = "Mic unavailable 😢";
+                setTimeout(advanceGame, 1800);
+            }
+        }
+
+        function showFeedback(isCorrect) {
+            const msgs = translations[state.language][isCorrect ? 'feedbackCorrect' : 'feedbackWrong'];
+            D.feedback.innerText = msgs[Math.floor(Math.random() * msgs.length)];
+            D.feedback.className = `absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-display font-black text-4xl sm:text-6xl pointer-events-none z-30 drop-shadow-xl outline-text text-center w-full px-4 ${isCorrect ? 'text-green-400' : 'text-red-400'}`;
+            gsap.killTweensOf(D.feedback); 
+            gsap.fromTo(D.feedback, { opacity: 0, scale: 0.5, y: "+=50" }, { opacity: 1, scale: 1, y: "-=50", duration: 0.5, ease: "back.out(2)" });
+            gsap.to(D.feedback, { opacity: 0, y: "-=100", duration: 0.4, delay: 1 });
+        }
+
+        function updateScore(points) {
+            const prevScore = state.score;
+            state.score += points;
+            let scoreObj = { val: parseInt(D.score.innerText) || 0 };
+            gsap.to(scoreObj, { val: state.score, duration: 1, roundProps: "val", onUpdate: function() { D.score.innerText = scoreObj.val; } });
+            gsap.to(D.score, { scale: 1.5, color: '#FFB7B2', duration: 0.2, yoyo: true, repeat: 1 });
+            // Check for new outfit unlock
+            OUTFITS.forEach(([threshold, emoji, label]) => {
+                if (emoji && prevScore < threshold && state.score >= threshold) {
+                    showOutfitUnlock(emoji, label);
+                }
+            });
+            saveData();
+        }
+
+        function showOutfitUnlock(emoji, label) {
+            const toast = document.getElementById('streak-toast');
+            const title = document.getElementById('streak-toast-title');
+            const sub   = document.getElementById('streak-toast-sub');
+            const fire  = document.getElementById('streak-toast-fire');
+            fire.textContent = emoji;
+            title.textContent = `New Outfit Unlocked!`;
+            sub.textContent   = `${emoji} ${label} — open Avatar to equip!`;
+            toast.classList.remove('hidden');
+            gsap.fromTo(toast, { y: -60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' });
+            gsap.to(toast, { y: -60, opacity: 0, duration: 0.4, delay: 3.5, onComplete: () => toast.classList.add('hidden') });
+            if (state.soundEnabled) sounds.pop.play();
+        }
+
+        function awardBadge(emoji) {
+            if(state.soundEnabled) sounds.pop.play();
+            const badge = document.createElement('div');
+            badge.className = 'w-5 h-5 sm:w-6 sm:h-6 bg-white rounded-full flex items-center justify-center text-[10px] sm:text-xs shadow-soft border border-pixar-amber';
+            badge.innerText = emoji;
+            D.badgeContainer.appendChild(badge);
+            gsap.from(badge, { scale: 0, rotation: 360, duration: 0.5, ease: "back.out(2)" });
+        }
+
+        function updateProgressUI() {
+            const percent = (state.currentQIndex / CONFIG.questionsPerLevel) * 100;
+            D.progressBar.style.width = `${percent}%`;
+        }
+
+        function fireConfetti(isBig = false) {
+            const count = isBig ? 60 : 25;
+            const hearts = ['❤️', '💖', '💕', '💗', '💓', '🌸'];
+            for(let i=0; i<count; i++) {
+                let heart = document.createElement('div');
+                heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)];
+                heart.style.position = 'fixed';
+                heart.style.left = (Math.random() * 100) + 'vw';
+                heart.style.top = '-10vh';
+                heart.style.fontSize = (Math.random() * 30 + 20) + 'px';
+                heart.style.zIndex = 1000;
+                heart.style.pointerEvents = 'none';
+                document.body.appendChild(heart);
+                gsap.to(heart, {
+                    y: window.innerHeight + 100, x: "+=" + (Math.random() * 100 - 50),
+                    rotation: Math.random() * 360, duration: Math.random() * 2 + 2.5,
+                    ease: 'power1.in', onComplete: () => heart.remove()
+                });
+            }
+        }
+
+        function advanceGame() {
+            // Fix Bug 8: guard against double-fire from micTimeout + skip/onresult race
+            if (advanceGame._pending) return;
+            advanceGame._pending = true;
+            setTimeout(() => { advanceGame._pending = false; }, 100);
+
+            if (recognition && isListening) { try { recognition.stop(); } catch(e){} isListening = false; }
+            clearTimeout(micTimeout);
+            state.currentQIndex++;
+            updateProgressUI();
+            saveData();
+            if (state.currentQIndex < currentLevelWords.length) {
+                gsap.to([D.visualPrompt, D.wordSlots, '#interaction-area'], {
+                    opacity: 0, y: -20, duration: 0.3, onComplete: () => {
+                        loadQuestion();
+                        gsap.to([D.visualPrompt, D.wordSlots, '#interaction-area'], { opacity: 1, y: 0, duration: 0.3 });
+                    }
+                });
+            } else {
+                handleLevelComplete();
+            }
+        }
+
+        function handleLevelComplete() {
+            state.isPlaying = false;
+            if(state.soundEnabled) sounds.levelUp.play();
+            updateScore(50);
+            
+            let badgeEmoji = "⭐";
+            if (state.levelPerfect) badgeEmoji = "🥇"; 
+            else if (state.level === 1) badgeEmoji = "🅰️"; 
+            else if (state.level === 2) badgeEmoji = "🇪"; 
+            else if (state.level === 3) badgeEmoji = "🇮"; 
+            else if (state.level === 4) badgeEmoji = "🇴"; 
+            else if (state.level === 5) badgeEmoji = "🇺"; 
+            else if (state.level === 6) badgeEmoji = "🏆"; 
+            
+            if(!state.badges) state.badges = [];
+            state.badges.push(badgeEmoji);
+            awardBadge(badgeEmoji);
+            document.getElementById('level-badge-display').innerText = badgeEmoji;
+            saveData();
+            switchScreen('levelComplete');
+            fireConfetti(true);
+            setTimeout(() => initPhysicsMinigame(currentLevelWords.map(q => q.word)), 500);
+        }
+
+        function handleGameEnd() {
+            state.isPlaying = false;
+            if(state.soundEnabled) sounds.levelUp.play();
+            document.getElementById('final-score-display').innerText = state.score;
+            saveData();
+            switchScreen('end');
+            fireConfetti(true);
+        }
+
+        function renderStickerBook() {
+            const grid = document.getElementById('sticker-grid');
+            grid.innerHTML = '';
+            if(!state.unlockedWords || state.unlockedWords.length === 0) {
+                document.getElementById('empty-stickers').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('empty-stickers').classList.add('hidden');
+            state.unlockedWords.forEach((item, i) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'bg-white rounded-xl sm:rounded-2xl p-2 sm:p-4 shadow-md border-b-4 border-gray-200 flex flex-col items-center bouncy-btn hover:border-pixar-cyan transition-colors';
+                btn.innerHTML = `<span class="text-3xl sm:text-4xl mb-1 sm:mb-2">${item.icon}</span><span class="font-display font-bold text-sm sm:text-base text-gray-700 capitalize">${item.word}</span>`;
+                btn.onclick = (e) => { e.preventDefault(); gsap.to(btn, {scale: 0.9, yoyo:true, repeat:1, duration:0.1}); playTTS(item.word); };
+                grid.appendChild(btn);
+                gsap.from(btn, {scale: 0, opacity: 0, duration: 0.4, delay: i * 0.05, ease: "back.out"});
+            });
+        }
+
+        function generateCertificate() {
+            document.getElementById('cert-name').innerText = state.playerName;
+            document.getElementById('cert-xp').innerText = state.score;
+            const d = new Date();
+            document.getElementById('cert-date').innerText = d.toLocaleDateString();
+            const badgeContainer = document.getElementById('cert-badges');
+            badgeContainer.innerHTML = '';
+            const uniqueBadges = [...new Set(state.badges || [])];
+            uniqueBadges.forEach(b => {
+                const span = document.createElement('span');
+                span.className = 'text-5xl bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center border-4 border-gray-200 shadow-sm';
+                span.innerText = b;
+                badgeContainer.appendChild(span);
+            });
+            window.print();
+        }
+
+        let physicsEngine, physicsRender, physicsRunner;
+        let physicsBodies = [];
+        let physicsLabelInterval = null;
+
+        function initPhysicsMinigame(wordsArray) {
+            const container = document.getElementById('matter-container');
+            container.innerHTML = '';
+            document.body.classList.add('physics-active');
+            physicsBodies = [];
+
+            const Engine = Matter.Engine, Render = Matter.Render, Runner = Matter.Runner,
+                  Bodies = Matter.Bodies, Composite = Matter.Composite, Mouse = Matter.Mouse,
+                  MouseConstraint = Matter.MouseConstraint;
+
+            physicsEngine = Engine.create();
+            physicsRender = Render.create({
+                element: container, engine: physicsEngine,
+                options: { width: window.innerWidth, height: window.innerHeight, wireframes: false, background: 'transparent' }
+            });
+
+            const ground = Bodies.rectangle(window.innerWidth/2, window.innerHeight+25, window.innerWidth, 50, {isStatic:true, render:{fillStyle:'transparent'}});
+            const leftWall = Bodies.rectangle(-25, window.innerHeight/2, 50, window.innerHeight, {isStatic:true, render:{fillStyle:'transparent'}});
+            const rightWall = Bodies.rectangle(window.innerWidth+25, window.innerHeight/2, 50, window.innerHeight, {isStatic:true, render:{fillStyle:'transparent'}});
+            Composite.add(physicsEngine.world, [ground, leftWall, rightWall]);
+
+            const allLetters = wordsArray.join('').split('');
+            const colors    = ['#B5EAD7', '#FFB7B2', '#6B5B95', '#FDFD96', '#A2E1DB', '#FFD1DC'];
+            const txtColors = ['#1a5c40', '#7a2820', '#ffffff', '#6b6b00', '#1a5858', '#6b2e3a'];
+
+            // Fix Bug 6: HTML label layer synced to physics bodies
+            const labelLayer = document.createElement('div');
+            labelLayer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:52;';
+            container.appendChild(labelLayer);
+
+            allLetters.forEach((letter, i) => {
+                setTimeout(() => {
+                    const size = Math.random() < 0.5 ? 70 : 80;
+                    const ci = Math.floor(Math.random() * colors.length);
+                    const body = Bodies.rectangle(window.innerWidth/2 + (Math.random()*100-50), -50, size, size, {
+                        restitution: 0.8, friction: 0.005, density: 0.04, chamfer: { radius: 12 },
+                        render: { fillStyle: colors[ci], strokeStyle: '#ffffff', lineWidth: 4 }
+                    });
+                    if(state.soundEnabled) sounds.pop.play();
+                    Composite.add(physicsEngine.world, body);
+
+                    const lbl = document.createElement('div');
+                    lbl.textContent = letter.toUpperCase();
+                    lbl.style.cssText = `position:absolute;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:${Math.round(size*0.48)}px;font-weight:900;color:${txtColors[ci]};pointer-events:none;transform-origin:center;will-change:transform;text-shadow:0 1px 2px rgba(0,0,0,0.15);`;
+                    labelLayer.appendChild(lbl);
+                    physicsBodies.push({ body, lbl, size });
+                }, i * 150);
+            });
+
+            // Sync HTML labels to Matter.js body positions at ~60fps
+            physicsLabelInterval = setInterval(() => {
+                physicsBodies.forEach(({ body, lbl, size }) => {
+                    const { x, y } = body.position;
+                    lbl.style.left = (x - size/2) + 'px';
+                    lbl.style.top  = (y - size/2) + 'px';
+                    lbl.style.transform = `rotate(${body.angle}rad)`;
+                });
+            }, 16);
+
+            const mouse = Mouse.create(physicsRender.canvas);
+            const mouseConstraint = MouseConstraint.create(physicsEngine, { mouse: mouse, constraint: { stiffness: 0.2, render: { visible: false } } });
+            Composite.add(physicsEngine.world, mouseConstraint);
+            physicsRender.mouse = mouse;
+
+            Render.run(physicsRender);
+            physicsRunner = Runner.create();
+            Runner.run(physicsRunner, physicsEngine);
+
+            window.addEventListener('resize', handlePhysicsResize);
+
+            window._physicsNextLevelTimer = setTimeout(() => {
+                window._physicsNextLevelTimer = null;
+                const isLastLevel = state.level >= CONFIG.totalLevels;
+                const btnOverlay = document.createElement('button');
+                btnOverlay.innerHTML = isLastLevel ? "Go to Results 🏆" : "Next Level ➡️";
+                btnOverlay.className = "absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-pixar-orange text-white px-8 py-4 rounded-full font-display font-black text-2xl shadow-btn bouncy-btn z-[100] border-4 border-white shadow-glow";
+                btnOverlay.style.pointerEvents = 'auto';
+                btnOverlay.style.position = 'absolute';
+                btnOverlay.onclick = (e) => {
+                    e.stopPropagation();
+                    if(state.soundEnabled) sounds.click.play();
+                    stopPhysicsMinigame();
+                    if(isLastLevel) { handleGameEnd(); }
+                    else { state.level++; setupLevel(); switchScreen('game'); }
+                };
+                container.appendChild(btnOverlay);
+                gsap.from(btnOverlay, { y: 100, opacity: 0, duration: 0.5, ease: "back.out(1.5)" });
+            }, 3500);
+        }
+
+        function handlePhysicsResize() {
+            if (physicsRender) {
+                physicsRender.canvas.width = window.innerWidth;
+                physicsRender.canvas.height = window.innerHeight;
+            }
+        }
+
+        function stopPhysicsMinigame() {
+            // ยกเลิก timer สร้างปุ่ม Next Level ที่อาจยังนับอยู่
+            if (window._physicsNextLevelTimer) {
+                clearTimeout(window._physicsNextLevelTimer);
+                window._physicsNextLevelTimer = null;
+            }
+            if (physicsRender) {
+                window.removeEventListener('resize', handlePhysicsResize);
+                Matter.Render.stop(physicsRender);
+                Matter.Runner.stop(physicsRunner);
+                Matter.World.clear(physicsEngine.world);
+                Matter.Engine.clear(physicsEngine);
+                physicsRender.canvas.remove();
+                physicsRender = null;
+                document.body.classList.remove('physics-active');
+            }
+            if (physicsLabelInterval) {
+                clearInterval(physicsLabelInterval);
+                physicsLabelInterval = null;
+            }
+            physicsBodies = [];
+            // ล้าง matter-container ให้สะอาด — ป้องกันปุ่ม Next Level ค้างข้ามหน้า
+            const container = document.getElementById('matter-container');
+            if (container) container.innerHTML = '';
+        }
+
+        document.getElementById('btn-start').addEventListener('click', (e) => { e.preventDefault(); if(state.soundEnabled) sounds.click.play(); initGame(false); });
+        document.getElementById('btn-continue').addEventListener('click', (e) => { e.preventDefault(); if(state.soundEnabled) sounds.click.play(); initGame(true); });
+        document.getElementById('btn-listen').addEventListener('click', (e) => { e.preventDefault(); if (currentQuestion) { gsap.to('#btn-listen', {scale: 0.9, duration: 0.1, yoyo: true, repeat: 1}); playTTS(currentQuestion.word, true); } });
+        document.getElementById('btn-restart').addEventListener('click', (e) => { e.preventDefault(); if(state.soundEnabled) sounds.click.play(); state.level = 1; state.score = 0; state.badges = []; initGame(true); });
+        document.getElementById('btn-print-cert').addEventListener('click', (e) => { e.preventDefault(); if(state.soundEnabled) sounds.click.play(); generateCertificate(); });
+        document.getElementById('btn-home-from-end').addEventListener('click', (e) => { e.preventDefault(); if(state.soundEnabled) sounds.click.play(); location.reload(); });
+        document.getElementById('btn-mic').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); startListening(); });
+        document.getElementById('btn-skip-mic').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); if(state.soundEnabled) sounds.click.play(); clearTimeout(micTimeout); advanceGame(); });
+
+        const openStickers = (e) => { if(e) e.preventDefault(); if(state.soundEnabled) sounds.click.play(); renderStickerBook(); switchScreen('stickerBook'); };
+        document.getElementById('btn-sticker-menu').addEventListener('click', openStickers);
+        document.getElementById('btn-sticker-nav').addEventListener('click', openStickers);
+        
+        document.getElementById('btn-leaderboard').addEventListener('click', (e) => {
+            e.preventDefault();
+            if(state.soundEnabled) sounds.click.play();
+            renderLeaderboard(); 
+            const backdrop = document.getElementById('modal-backdrop');
+            if(backdrop) backdrop.classList.remove('hidden');
+            const modal = document.getElementById('modal-leaderboard');
+            modal.classList.remove('hidden');
+            gsap.fromTo(modal, {opacity: 0, scale: 0.8}, {opacity: 1, scale: 1, duration: 0.3});
+        });
+
+        document.querySelectorAll('.btn-close-stickers, .btn-close-admin, .btn-close-modal').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if(state.soundEnabled) sounds.click.play();
+                document.getElementById('modal-teacher-login').classList.add('hidden');
+                document.getElementById('screen-admin').classList.add('hidden');
+                document.getElementById('modal-leaderboard').classList.add('hidden');
+                document.getElementById('modal-avatar').classList.add('hidden');
+                const backdrop = document.getElementById('modal-backdrop');
+                if (backdrop) backdrop.classList.add('hidden');
+                if(state.isPlaying) switchScreen('game');
+                else switchScreen('start');
+            });
+        });
+
+        // Close avatar modal on backdrop click
+        document.getElementById('modal-backdrop').addEventListener('click', () => {
+            const avatarModal = document.getElementById('modal-avatar');
+            if (!avatarModal.classList.contains('hidden')) closeAvatarModal();
+        });
+
+        document.getElementById('btn-sound-toggle').addEventListener('click', (e) => {
+            e.preventDefault();
+            state.soundEnabled = !state.soundEnabled;
+            e.target.innerText = state.soundEnabled ? '🔊' : '🔇';
+            Howler.mute(!state.soundEnabled);
+            saveData();
+        });
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                state.language = e.target.dataset.lang;
+                if(state.soundEnabled) sounds.click.play();
+                updateTranslation();
+                saveData();
+            });
+        });
+
+        const animalIcons = ['🐰', '🐱', '🐶', '🐻', '🐼', '🦊', '🐯', '🦁', '🐮', '🐷'];
+        let isPassVisible = false;
+
+        function updatePassDisplay() {
+            let val = document.getElementById('admin-pass-real').value;
+            let displayStr = '';
+            if(isPassVisible) {
+                displayStr = val; 
+            } else {
+                for(let i = 0; i < val.length; i++) {
+                    let code = val.charCodeAt(i) % animalIcons.length;
+                    displayStr += animalIcons[code];
+                }
+            }
+            document.getElementById('admin-pass-display').innerText = displayStr;
+            const placeholder = document.getElementById('admin-pass-placeholder');
+            if (placeholder) { placeholder.style.display = val.length > 0 ? 'none' : 'flex'; }
+        }
+
+        document.getElementById('btn-toggle-pass').addEventListener('click', (e) => {
+            e.preventDefault();
+            isPassVisible = !isPassVisible;
+            e.target.innerText = isPassVisible ? '🙈' : '👁️';
+            updatePassDisplay();
+        });
+
+        document.getElementById('admin-pass-real').addEventListener('input', updatePassDisplay);
+
+        document.getElementById('btn-open-teacher-login').addEventListener('click', (e) => {
+            e.preventDefault();
+            if(state.soundEnabled) sounds.click.play();
+            document.getElementById('admin-user').value = '';
+            document.getElementById('admin-pass-real').value = '';
+            document.getElementById('admin-pass-display').innerText = '';
+            isPassVisible = false;
+            document.getElementById('btn-toggle-pass').innerText = '👁️';
+            const errorMsg = document.getElementById('login-error-msg');
+            if(errorMsg) errorMsg.classList.add('hidden');
+            const placeholder = document.getElementById('admin-pass-placeholder');
+            if (placeholder) placeholder.style.display = 'flex';
+            const backdrop = document.getElementById('modal-backdrop');
+            if(backdrop) backdrop.classList.remove('hidden');
+            const modal = document.getElementById('modal-teacher-login');
+            modal.classList.remove('hidden');
+            gsap.fromTo(modal, {opacity: 0, scale: 0.8}, {opacity: 1, scale: 1, duration: 0.3});
+        });
+
+        document.getElementById('btn-admin-login').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const user = document.getElementById('admin-user').value.trim().toLowerCase();
+            const pass = document.getElementById('admin-pass-real').value.trim();
+            const errorMsg = document.getElementById('login-error-msg');
+
+            // Credentials are hashed — never stored as plaintext in source
+            // SHA-256 of "jay" = "6e2bc48c33d5da21a6538c1a33f8ca38cae1e48d607e76d5ce6e3ca9e6f5e5e5" (placeholder)
+            // To change credentials: run SHA-256 on "username|password" and update _CRED below
+            const _CRED = "1557603cff6e44a99415ef8f4fdb3c7a928fe14e6084eea40dda0cd62446c223";
+            const encoder = new TextEncoder();
+            const data = encoder.encode(user + '|' + pass);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+            
+            if(hashHex === _CRED) {
+                if(state.soundEnabled) sounds.levelUp.play();
+                if(errorMsg) errorMsg.classList.add('hidden');
+                document.getElementById('modal-teacher-login').classList.add('hidden');
+                const backdrop = document.getElementById('modal-backdrop');
+                if(backdrop) backdrop.classList.add('hidden');
+                openAdminDashboard();
+            } else {
+                if(state.soundEnabled) sounds.wrong.play();
+                if(errorMsg) errorMsg.classList.remove('hidden');
+                gsap.to('#modal-teacher-login', {x: [-10, 10, -10, 10, 0], duration: 0.4});
+            }
+        });
+
+        function openAdminDashboard() {
+            Object.values(D.screens).forEach(screen => { if(screen) screen.classList.add('hidden'); });
+            const adminScreen = document.getElementById('screen-admin');
+            adminScreen.classList.remove('hidden');
+            gsap.fromTo(adminScreen, {opacity: 0, y: 50}, {opacity: 1, y: 0, duration: 0.4});
+            renderAdminTable();
+        }
+
+        async function renderAdminTable() {
+            const tbody = document.getElementById('admin-table-body');
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-400 py-6">Loading... / กำลังโหลด...</td></tr>`;
+
+            let allStudents = [];
+
+            // ดึงจาก Supabase ก่อน
+            try {
+                const res = await fetch(SCORES_API);
+                if (res.ok) {
+                    allStudents = await res.json();
+                } else {
+                    throw new Error('API error');
+                }
+            } catch(e) {
+                // Fallback: ใช้ localStorage ถ้า offline หรือ function ยังไม่ deploy
+                console.warn('Using localStorage fallback for admin table');
+                allStudents = JSON.parse(localStorage.getItem('phonicsFactoryAllStudents') || '[]');
+            }
+
+            tbody.innerHTML = '';
+            let totalScore = 0;
+
+            if (allStudents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-400 py-8 italic">ยังไม่มีข้อมูลนักเรียน / No student data yet</td></tr>`;
+                document.getElementById('admin-stat-total').innerText = 0;
+                document.getElementById('admin-stat-avg').innerText = 0;
+                return;
+            }
+
+            allStudents.forEach((student) => {
+                totalScore += parseInt(student.score) || 0;
+                const tr = document.createElement('tr');
+                const safeName = (student.name || '').replace(/"/g, '&quot;');
+                tr.innerHTML = `
+                    <td>${student.date || ''}</td>
+                    <td class="font-bold text-pixar-indigo">${student.name || ''}</td>
+                    <td class="font-bold text-pixar-orange">${student.score ?? 0} ⚡</td>
+                    <td><input type="text" class="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm outline-none focus:border-pixar-cyan"
+                        value="${(student.feedback || '').replace(/"/g, '&quot;')}"
+                        onchange="updateStudentFeedback('${safeName}', this.value)"
+                        placeholder="Add feedback..."></td>
+                    <td class="text-center no-print">
+                        <button onclick="deleteStudentCloud('${safeName}')" class="text-red-500 hover:text-red-700">🗑️</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('admin-stat-total').innerText = allStudents.length;
+            document.getElementById('admin-stat-avg').innerText = allStudents.length > 0
+                ? Math.round(totalScore / allStudents.length) : 0;
+        }
+
+        window.updateStudentFeedback = async function(name, text) {
+            // อัปเดต Supabase
+            try {
+                await fetch(SCORES_API, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, feedback: text }),
+                });
+            } catch(e) {}
+            // อัปเดต localStorage ด้วย
+            try {
+                let all = JSON.parse(localStorage.getItem('phonicsFactoryAllStudents') || '[]');
+                let s = all.find(x => x.name === name);
+                if (s) { s.feedback = text; localStorage.setItem('phonicsFactoryAllStudents', JSON.stringify(all)); }
+            } catch(e) {}
+        };
+
+        window.deleteStudentCloud = async function(name) {
+            if (!confirm(`Delete record for "${name}"?\nลบข้อมูลของ "${name}"?`)) return;
+            // ลบจาก Supabase โดยตรง (ต้องใช้ service_role key หรือ policy allow delete)
+            // วิธีง่าย: ตั้ง score = -1 แล้วกรองทิ้ง หรือเพิ่ม DELETE policy ใน Supabase
+            try {
+                const res = await fetch(SCORES_API, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, feedback: '__DELETED__', score: -1 }),
+                });
+            } catch(e) {}
+            // ลบจาก localStorage
+            try {
+                let all = JSON.parse(localStorage.getItem('phonicsFactoryAllStudents') || '[]');
+                all = all.filter(x => x.name !== name);
+                localStorage.setItem('phonicsFactoryAllStudents', JSON.stringify(all));
+            } catch(e) {}
+            renderAdminTable();
+        };
+
+        document.getElementById('btn-admin-add').addEventListener('click', () => {
+            let name = prompt("Enter student name:");
+            if(name) {
+                let all = JSON.parse(localStorage.getItem('phonicsFactoryAllStudents') || '[]');
+                all.push({ id: Date.now(), name: name, score: 0, date: new Date().toLocaleDateString(), feedback: "" });
+                localStorage.setItem('phonicsFactoryAllStudents', JSON.stringify(all));
+                renderAdminTable();
+            }
+        });
+
+        document.getElementById('btn-export-excel').addEventListener('click', () => {
+            let all = JSON.parse(localStorage.getItem('phonicsFactoryAllStudents') || '[]');
+            let csv = "Date,Name,Score,Feedback\n";
+            all.forEach(s => csv += `${s.date},${s.name},${s.score},"${s.feedback || ''}"\n`);
+            let blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' }); 
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Students_Scores.csv";
+            link.click();
+        });
+
+        document.getElementById('btn-export-word').addEventListener('click', () => {
+            let all = JSON.parse(localStorage.getItem('phonicsFactoryAllStudents') || '[]');
+            let html = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Score Sheet</title></head><body>";
+            html += "<h2>Phonics Factory Score Sheet</h2><table border='1' style='width:100%; border-collapse:collapse;'><tr><th>Date</th><th>Name</th><th>Score</th><th>Feedback</th></tr>";
+            all.forEach(s => html += `<tr><td>${s.date}</td><td>${s.name}</td><td>${s.score}</td><td>${s.feedback || ''}</td></tr>`);
+            html += "</table></body></html>";
+            let blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Students_Scores.doc";
+            link.click();
+        });
+
+        document.getElementById('btn-export-pdf').addEventListener('click', () => {
+            document.body.classList.add('printing-admin');
+            window.print();
+            setTimeout(() => document.body.classList.remove('printing-admin'), 500);
+        });
+
+        // ============================================================
+        // AVATAR SYSTEM
+        // ============================================================
+        const AVATARS = ['🐱','🐶','🐰','🐼','🦊','🐯','🦁','🐮','🐷','🐸'];
+        // Outfits unlock at XP thresholds: [minXP, emoji, label]
+        const OUTFITS = [
+            [0,   '',   'None'],
+            [50,  '🎩', 'Top Hat'],
+            [150, '🌈', 'Rainbow'],
+            [300, '👑', 'Crown'],
+            [500, '🚀', 'Rocket'],
+            [800, '⭐', 'Gold Star'],
+        ];
+
+        function getUnlockedOutfits() {
+            return OUTFITS.filter(o => state.score >= o[0]);
+        }
+
+        function openAvatarModal() {
+            const grid = document.getElementById('avatar-grid');
+            grid.innerHTML = '';
+            AVATARS.forEach(em => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'avatar-option w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-3xl sm:text-4xl bg-white rounded-full shadow-soft' + (state.avatarEmoji === em ? ' selected' : '');
+                btn.textContent = em;
+                btn.onclick = () => {
+                    document.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    state.avatarEmoji = em;
+                    gsap.from(btn, { scale: 0.5, duration: 0.3, ease: 'back.out(2)' });
+                };
+                grid.appendChild(btn);
+            });
+
+            // Outfits
+            const unlocked = getUnlockedOutfits().filter(o => o[1]);
+            const outfitSection = document.getElementById('outfit-section');
+            const outfitGrid = document.getElementById('outfit-grid');
+            outfitGrid.innerHTML = '';
+            if (unlocked.length > 0) {
+                outfitSection.classList.remove('hidden');
+                // Add "None" option
+                [['','None'], ...unlocked.map(o => [o[1], o[2]])].forEach(([em, label]) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'flex flex-col items-center gap-1 px-3 py-2 rounded-xl border-2 text-sm font-bold bouncy-btn ' + (state.avatarOutfit === em ? 'border-pixar-indigo bg-indigo-50 text-pixar-indigo' : 'border-gray-200 bg-white text-gray-500');
+                    btn.innerHTML = `<span class="text-xl">${em || '🚫'}</span><span class="text-[10px]">${label}</span>`;
+                    btn.onclick = () => {
+                        document.querySelectorAll('#outfit-grid button').forEach(b => b.className = b.className.replace('border-pixar-indigo bg-indigo-50 text-pixar-indigo','border-gray-200 bg-white text-gray-500'));
+                        btn.className = btn.className.replace('border-gray-200 bg-white text-gray-500','border-pixar-indigo bg-indigo-50 text-pixar-indigo');
+                        state.avatarOutfit = em;
+                    };
+                    outfitGrid.appendChild(btn);
+                });
+            } else {
+                outfitSection.classList.add('hidden');
+            }
+
+            const backdrop = document.getElementById('modal-backdrop');
+            if (backdrop) backdrop.classList.remove('hidden');
+            const modal = document.getElementById('modal-avatar');
+            modal.classList.remove('hidden');
+            gsap.fromTo(modal, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(1.7)' });
+        }
+
+        function closeAvatarModal() {
+            document.getElementById('modal-avatar').classList.add('hidden');
+            const backdrop = document.getElementById('modal-backdrop');
+            if (backdrop) backdrop.classList.add('hidden');
+            updateAvatarHUD();
+            saveData();
+        }
+
+        function updateAvatarHUD() {
+            const em = state.avatarEmoji || '🐱';
+            const outfit = state.avatarOutfit || '';
+            // HUD
+            const hudEl = document.getElementById('hud-avatar');
+            if (hudEl) hudEl.textContent = em;
+            const outfitEl = document.getElementById('hud-avatar-outfit');
+            if (outfitEl) { outfitEl.textContent = outfit; outfitEl.style.display = outfit ? 'flex' : 'none'; }
+            // Start screen
+            const startEl = document.getElementById('start-avatar-emoji');
+            if (startEl) startEl.textContent = em;
+            // Battle visuals
+            const bv1 = document.getElementById('battle-visual-1');
+            if (bv1) bv1.textContent = em;
+            // Update btn label
+            const lbl = document.getElementById('btn-avatar-label');
+            if (lbl) lbl.textContent = `${em} Change Avatar`;
+        }
+
+        document.getElementById('btn-avatar-picker').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (state.soundEnabled) sounds.click.play();
+            openAvatarModal();
+        });
+
+        document.getElementById('btn-confirm-avatar').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (state.soundEnabled) sounds.click.play();
+            closeAvatarModal();
+        });
+
+        // ============================================================
+        // DAILY STREAK SYSTEM
+        // ============================================================
+        function checkAndUpdateStreak() {
+            const today = new Date().toLocaleDateString();
+            const last  = state.lastPlayedDate;
+
+            if (!last) {
+                // First ever play
+                state.streakCount = 1;
+                state.lastPlayedDate = today;
+                showStreakToast(1, true);
+            } else if (last === today) {
+                // Already played today — just show current
+                if (state.streakCount > 0) showStreakToast(state.streakCount, false);
+            } else {
+                const lastDate  = new Date(last);
+                const todayDate = new Date(today);
+                const diffDays  = Math.round((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 1) {
+                    // Consecutive day
+                    state.streakCount++;
+                    state.lastPlayedDate = today;
+                    // Bonus XP for streaks
+                    const bonus = Math.min(state.streakCount, 7) * CONFIG.streakBonusXP;
+                    updateScore(bonus);
+                    showStreakToast(state.streakCount, true, bonus);
+                } else {
+                    // Streak broken
+                    showStreakBroken(state.streakCount);
+                    state.streakCount = 1;
+                    state.lastPlayedDate = today;
+                }
+            }
+            updateStreakHUD();
+            saveData();
+        }
+
+        function showStreakToast(count, isNew, bonus = 0) {
+            const toast = document.getElementById('streak-toast');
+            const title = document.getElementById('streak-toast-title');
+            const sub   = document.getElementById('streak-toast-sub');
+            const fire  = document.getElementById('streak-toast-fire');
+
+            const fireEmoji = count >= 7 ? '🌋' : count >= 5 ? '🔥' : count >= 3 ? '🔥' : '🔥';
+            fire.textContent = fireEmoji;
+            title.textContent = isNew ? `Day ${count} Streak!` : `🔥 ${count} Day Streak!`;
+            sub.textContent   = bonus > 0 ? `+${bonus} Bonus XP ✨` : 'Keep it up!';
+
+            toast.classList.remove('hidden');
+            gsap.fromTo(toast, { y: -60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'back.out(1.7)' });
+            gsap.to(toast, { y: -60, opacity: 0, duration: 0.4, delay: 3, onComplete: () => toast.classList.add('hidden') });
+
+            // Pop the fire in HUD
+            const hudFire = document.getElementById('streak-fire');
+            if (hudFire) { hudFire.classList.add('streak-pop'); setTimeout(() => hudFire.classList.remove('streak-pop'), 500); }
+        }
+
+        function showStreakBroken(oldStreak) {
+            if (oldStreak < 2) return;
+            const toast = document.getElementById('streak-toast');
+            const title = document.getElementById('streak-toast-title');
+            const sub   = document.getElementById('streak-toast-sub');
+            const fire  = document.getElementById('streak-toast-fire');
+            fire.textContent = '💔';
+            title.textContent = 'Streak Broken!';
+            sub.textContent   = `Your ${oldStreak}-day streak ended. Start again today!`;
+            toast.classList.remove('hidden');
+            gsap.fromTo(toast, { y: -60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: 'power2.out' });
+            gsap.to(toast, { y: -60, opacity: 0, duration: 0.4, delay: 3.5, onComplete: () => toast.classList.add('hidden') });
+            const hudFire = document.getElementById('streak-fire');
+            if (hudFire) { hudFire.classList.add('streak-lose'); setTimeout(() => hudFire.classList.remove('streak-lose'), 500); }
+        }
+
+        function updateStreakHUD() {
+            const n = state.streakCount || 0;
+            const sd = document.getElementById('streak-display');
+            if (sd) sd.textContent = n;
+            const hsFire = document.getElementById('home-streak-fire');
+            const hsNum  = document.getElementById('home-streak-num');
+            const hsLbl  = document.getElementById('home-streak-label');
+            const hsDiv  = document.getElementById('home-streak-display');
+            if (hsFire && hsNum && hsLbl && hsDiv) {
+                if (n > 0) {
+                    hsFire.textContent = n >= 7 ? '🌋' : '🔥';
+                    hsNum.textContent  = n;
+                    hsLbl.textContent  = `${state.language === 'th' ? 'วันติดต่อกัน!' : 'day streak!'}`;
+                    hsDiv.classList.remove('hidden');
+                } else {
+                    hsDiv.classList.add('hidden');
+                }
+            }
+        }
+
+        // ============================================================
+        // BATTLE MODE
+        // ============================================================
+        const battleState = {
+            round: 0,
+            totalRounds: CONFIG.battleRounds,
+            scores: [0, 0],
+            names: ['Player 1', 'Player 2'],
+            currentWord: null,
+            answered: [false, false],
+            timerInterval: null,
+            timerSec: 0,
+            words: []
+        };
+
+        // Build a shared pool for battle from all levels
+        const BATTLE_POOL = [
+            { word:"cat", missing:1, options:["a","e","i"], icon:"🐱" },
+            { word:"bat", missing:0, options:["b","p","d"], icon:"🦇" },
+            { word:"dog", missing:1, options:["o","a","u"], icon:"🐶" },
+            { word:"map", missing:2, options:["p","t","d"], icon:"🗺️" },
+            { word:"sun", missing:1, options:["u","a","o"], icon:"☀️" },
+            { word:"bed", missing:1, options:["e","a","i"], icon:"🛏️" },
+            { word:"pig", missing:1, options:["i","e","a"], icon:"🐷" },
+            { word:"cup", missing:2, options:["p","t","d"], icon:"☕" },
+            { word:"fox", missing:2, options:["x","s","t"], icon:"🦊" },
+            { word:"hat", missing:0, options:["h","t","f"], icon:"🎩" },
+            { word:"hen", missing:2, options:["n","m","p"], icon:"🐔" },
+            { word:"bug", missing:1, options:["u","o","i"], icon:"🐞" },
+            { word:"nut", missing:0, options:["n","m","h"], icon:"🥜" },
+            { word:"web", missing:1, options:["e","a","o"], icon:"🕸️" },
+            { word:"zip", missing:0, options:["z","s","c"], icon:"🤐" },
+            { word:"log", missing:2, options:["g","k","c"], icon:"🪵" },
+        ];
+
+        function startBattleMode() {
+            if (state.soundEnabled) sounds.click.play();
+            // Capture names from inputs (filled before game starts or default)
+            const n1 = document.getElementById('battle-name-1').value.trim() || 'Player 1';
+            const n2 = document.getElementById('battle-name-2').value.trim() || 'Player 2';
+            battleState.names  = [n1, n2];
+            battleState.scores = [0, 0];
+            battleState.round  = 0;
+            // Shuffle and pick rounds
+            battleState.words = [...BATTLE_POOL].sort(() => 0.5 - Math.random()).slice(0, battleState.totalRounds);
+
+            document.getElementById('battle-score-1').textContent = '0';
+            document.getElementById('battle-score-2').textContent = '0';
+            document.getElementById('battle-end-overlay').classList.add('hidden');
+            document.getElementById('battle-visual-1').textContent = state.avatarEmoji || '🐱';
+            document.getElementById('battle-visual-2').textContent = '🐶';
+            document.getElementById('battle-feedback-1').textContent = '';
+            document.getElementById('battle-feedback-2').textContent = '';
+
+            // Show battle screen
+            const D_screens = {
+                start: document.getElementById('screen-start'),
+                game: document.getElementById('screen-game'),
+                levelComplete: document.getElementById('screen-level-complete'),
+                end: document.getElementById('screen-end'),
+                stickerBook: document.getElementById('screen-sticker-book')
+            };
+            Object.values(D_screens).forEach(s => { if(s) { s.classList.add('hidden'); s.style.opacity=0; } });
+
+            const battleScreen = document.getElementById('screen-battle');
+            battleScreen.classList.remove('hidden');
+            gsap.fromTo(battleScreen, { opacity:0 }, { opacity:1, duration:0.5 });
+
+            if (D.header) D.header.classList.add('hidden');
+            if (D.footer) D.footer.classList.add('hidden');
+
+            loadBattleRound();
+        }
+
+        function loadBattleRound() {
+            if (battleState.round >= battleState.totalRounds) {
+                endBattle(); return;
+            }
+            const q = battleState.words[battleState.round];
+            battleState.currentWord = q;
+            battleState.answered    = [false, false];
+
+            document.getElementById('battle-word-display').textContent = q.word.replace(q.word[q.missing], '_').toUpperCase();
+            document.getElementById('battle-round-display').textContent = `Round ${battleState.round + 1} / ${battleState.totalRounds}`;
+            document.getElementById('battle-visual-1').textContent = q.icon;
+            document.getElementById('battle-visual-2').textContent = q.icon;
+            document.getElementById('battle-feedback-1').textContent = '';
+            document.getElementById('battle-feedback-2').textContent = '';
+
+            // Render options for each player (same shuffled options)
+            const shuffled = [...q.options].sort(() => 0.5 - Math.random());
+            [1, 2].forEach(p => {
+                const container = document.getElementById(`battle-options-${p}`);
+                container.innerHTML = '';
+                shuffled.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = opt.toUpperCase();
+                    btn.className = `w-full py-2 sm:py-3 rounded-xl font-display font-black text-xl sm:text-2xl bouncy-btn shadow-soft border-2 ${p===1 ? 'bg-pixar-orange/10 border-pixar-orange text-pixar-orange' : 'bg-pixar-cyan/10 border-pixar-cyan text-pixar-cyan'}`;
+                    btn.onclick = () => handleBattleAnswer(p - 1, opt, btn, container);
+                    container.appendChild(btn);
+                });
+            });
+
+            // Per-round timer (7 seconds)
+            clearInterval(battleState.timerInterval);
+            let timerLeft = 7;
+            const bar = document.getElementById('battle-timer-bar');
+            bar.style.width = '100%';
+            bar.style.background = '#6B5B95';
+            battleState.timerInterval = setInterval(() => {
+                timerLeft--;
+                bar.style.width = ((timerLeft / 7) * 100) + '%';
+                if (timerLeft <= 2) bar.style.background = '#FFB7B2';
+                if (timerLeft <= 0) {
+                    clearInterval(battleState.timerInterval);
+                    // Auto-advance if unanswered
+                    if (!battleState.answered[0]) showBattleMiss(0);
+                    if (!battleState.answered[1]) showBattleMiss(1);
+                    setTimeout(() => { battleState.round++; loadBattleRound(); }, 1200);
+                }
+            }, 1000);
+
+            if (state.soundEnabled) playTTS(q.word, true);
+        }
+
+        function handleBattleAnswer(playerIdx, chosen, btnEl, container) {
+            if (battleState.answered[playerIdx]) return;
+            battleState.answered[playerIdx] = true;
+
+            const correct = chosen === battleState.currentWord.word[battleState.currentWord.missing];
+            const panel = document.getElementById(`battle-p${playerIdx + 1}`);
+            const feedback = document.getElementById(`battle-feedback-${playerIdx + 1}`);
+            const scoreEl = document.getElementById(`battle-score-${playerIdx + 1}`);
+
+            // Disable this player's buttons
+            Array.from(container.children).forEach(b => { b.disabled = true; });
+
+            if (correct) {
+                btnEl.className = btnEl.className + ' bg-green-400 !border-green-600 !text-white';
+                panel.classList.add('correct-flash');
+                setTimeout(() => panel.classList.remove('correct-flash'), 400);
+                battleState.scores[playerIdx] += 10;
+                scoreEl.textContent = battleState.scores[playerIdx];
+                scoreEl.classList.add('battle-score-pop');
+                setTimeout(() => scoreEl.classList.remove('battle-score-pop'), 400);
+                feedback.textContent = '✅ +10';
+                feedback.style.color = '#059669';
+                if (state.soundEnabled) sounds.correct.play();
+            } else {
+                btnEl.className = btnEl.className.replace('bg-pixar-orange/10','bg-red-100').replace('bg-pixar-cyan/10','bg-red-100');
+                panel.classList.add('wrong-flash');
+                setTimeout(() => panel.classList.remove('wrong-flash'), 350);
+                feedback.textContent = '❌';
+                feedback.style.color = '#DC2626';
+                if (state.soundEnabled) sounds.wrong.play();
+            }
+
+            // If both answered, advance after brief pause
+            if (battleState.answered[0] && battleState.answered[1]) {
+                clearInterval(battleState.timerInterval);
+                setTimeout(() => { battleState.round++; loadBattleRound(); }, 1200);
+            }
+        }
+
+        function showBattleMiss(playerIdx) {
+            const feedback = document.getElementById(`battle-feedback-${playerIdx + 1}`);
+            feedback.textContent = '⏱️ Time!';
+            feedback.style.color = '#9CA3AF';
+        }
+
+        function endBattle() {
+            clearInterval(battleState.timerInterval);
+            const [s1, s2] = battleState.scores;
+            const [n1, n2] = battleState.names;
+            const overlay = document.getElementById('battle-end-overlay');
+            const winnerEmoji = document.getElementById('battle-winner-emoji');
+            const winnerText  = document.getElementById('battle-winner-text');
+            const finalScores = document.getElementById('battle-final-scores');
+
+            if (s1 > s2) { winnerEmoji.textContent = '🏆'; winnerText.textContent = `${n1} Wins!`; }
+            else if (s2 > s1) { winnerEmoji.textContent = '🏆'; winnerText.textContent = `${n2} Wins!`; }
+            else { winnerEmoji.textContent = '🤝'; winnerText.textContent = "It's a Tie!"; }
+            finalScores.textContent = `${n1}: ${s1} pts  •  ${n2}: ${s2} pts`;
+
+            overlay.classList.remove('hidden');
+            if (state.soundEnabled) sounds.levelUp.play();
+            fireConfetti(true);
+            gsap.fromTo(overlay, { opacity:0, scale:0.9 }, { opacity:1, scale:1, duration:0.5, ease:'back.out(1.5)' });
+        }
+
+        function restartBattle() {
+            if (state.soundEnabled) sounds.click.play();
+            startBattleMode();
+        }
+
+        function exitBattle() {
+            if (state.soundEnabled) sounds.click.play();
+            clearInterval(battleState.timerInterval);
+            document.getElementById('screen-battle').classList.add('hidden');
+            document.getElementById('screen-start').classList.remove('hidden');
+            gsap.fromTo('#screen-start', { opacity:0, y:30 }, { opacity:1, y:0, duration:0.5 });
+        }
+
+        document.getElementById('btn-battle').addEventListener('click', (e) => {
+            e.preventDefault();
+            // Show name setup briefly then start
+            const n1 = document.getElementById('battle-name-1');
+            const n2 = document.getElementById('battle-name-2');
+            // Pre-fill P1 with current player name if set
+            if (state.playerName && !n1.value) n1.value = state.playerName;
+            startBattleMode();
+        });
+
+        // ============================================================
+        // EXIT GAME — confirm dialog
+        // ============================================================
+        function confirmExitGame() {
+            // หยุด mic ถ้ากำลังฟังอยู่
+            if (isListening) {
+                try { recognition.stop(); } catch(e) {}
+                isListening = false;
+            }
+            clearTimeout(micTimeout);
+            stopPhysicsMinigame();
+
+            const modal = document.getElementById('modal-exit-confirm');
+            modal.classList.remove('hidden');
+            gsap.fromTo(modal.firstElementChild,
+                { scale: 0.8, opacity: 0 },
+                { scale: 1, opacity: 1, duration: 0.35, ease: 'back.out(1.7)' }
+            );
+            if (state.soundEnabled) sounds.click.play();
+        }
+
+        function closeExitConfirm() {
+            const modal = document.getElementById('modal-exit-confirm');
+            gsap.to(modal.firstElementChild, {
+                scale: 0.85, opacity: 0, duration: 0.2,
+                onComplete: () => modal.classList.add('hidden')
+            });
+            if (state.soundEnabled) sounds.click.play();
+        }
+
+        function doExitGame() {
+            document.getElementById('modal-exit-confirm').classList.add('hidden');
+            state.isPlaying = false;
+            saveData();
+            if (state.soundEnabled) sounds.click.play();
+            // กลับหน้า start โดยไม่ reload — เก็บ progress ไว้
+            switchScreen('start');
+            // ซ่อน header/footer
+            if (D.header) { gsap.to(D.header, { opacity: 0, duration: 0.3, onComplete: () => D.header.classList.add('hidden') }); }
+            if (D.footer) D.footer.classList.add('hidden');
+        }
+
+        loadData();
+        updateTranslation();
+        updateAvatarHUD();
+        updateStreakHUD();
+        gsap.fromTo('#screen-start', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out", delay: 0.2 });
+
+    </script>
+</body>
+</html>
